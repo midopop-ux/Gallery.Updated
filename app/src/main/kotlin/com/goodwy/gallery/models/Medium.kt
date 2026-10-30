@@ -99,6 +99,18 @@ data class Medium(
     }
 
     fun getGroupingKey(groupBy: Int): String {
+        if (deletedTS != 0L) {
+            return when {
+                groupBy and (GROUP_BY_LAST_MODIFIED_DAILY or GROUP_BY_DATE_TAKEN_DAILY) != 0 -> getDayStartTS(deletedTS, false)
+                groupBy and (GROUP_BY_LAST_MODIFIED_MONTHLY or GROUP_BY_DATE_TAKEN_MONTHLY) != 0 -> getDayStartTS(deletedTS, true)
+                groupBy and (GROUP_BY_LAST_MODIFIED_YEARLY or GROUP_BY_DATE_TAKEN_YEARLY) != 0 -> getDayStartTS(deletedTS, false, true)
+                groupBy and GROUP_BY_FILE_TYPE != 0 -> type.toString()
+                groupBy and GROUP_BY_EXTENSION != 0 -> name.getFilenameExtension().lowercase(Locale.getDefault())
+                groupBy and GROUP_BY_FOLDER != 0 -> parentPath
+                else -> ""
+            }
+        }
+
         return when {
             groupBy and GROUP_BY_LAST_MODIFIED_DAILY != 0 -> getDayStartTS(modified, false)
             groupBy and GROUP_BY_LAST_MODIFIED_MONTHLY != 0 -> getDayStartTS(modified, true)

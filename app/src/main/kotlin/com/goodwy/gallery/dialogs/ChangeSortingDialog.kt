@@ -43,8 +43,13 @@ class ChangeSortingDialog(
 
             sortingDialogNumericSorting.isChecked = currSorting and SORT_USE_NUMERIC_VALUE != 0
 
-            sortingDialogUseForThisFolder.beVisibleIf(showFolderCheckbox)
-            sortingDialogUseForThisFolder.isChecked = config.hasCustomSorting(pathToUse)
+            if (pathToUse == com.goodwy.gallery.helpers.RECYCLE_BIN) {
+                sortingDialogUseForThisFolder.beGone()
+                sortingDialogUseForThisFolder.isChecked = true
+            } else {
+                sortingDialogUseForThisFolder.beVisibleIf(showFolderCheckbox)
+                sortingDialogUseForThisFolder.isChecked = config.hasCustomSorting(pathToUse)
+            }
             sortingDialogBottomNote.beVisibleIf(!isDirectorySorting)
             sortingDialogRadioCustom.beVisibleIf(isDirectorySorting)
             sortingDialogRadioDateDeleted.beVisibleIf(!isDirectorySorting && pathToUse == com.goodwy.gallery.helpers.RECYCLE_BIN)

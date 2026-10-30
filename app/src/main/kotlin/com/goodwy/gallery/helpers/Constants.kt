@@ -144,7 +144,6 @@ const val SHOW_FAVORITES = "show_favorites"
 const val SHOW_RECYCLE_BIN = "show_recycle_bin"
 const val IS_IN_RECYCLE_BIN = "is_in_recycle_bin"
 const val SORT_BY_DATE_DELETED = 1048576 // 2^20
-const val WERE_OLD_RECYCLE_BIN_ITEMS_MIGRATED = "were_old_recycle_bin_items_migrated"
 const val SHOW_NEXT_ITEM = "show_next_item"
 const val SHOW_PREV_ITEM = "show_prev_item"
 const val GO_TO_NEXT_ITEM = "go_to_next_item"

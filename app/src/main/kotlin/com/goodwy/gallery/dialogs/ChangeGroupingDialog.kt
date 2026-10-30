@@ -20,7 +20,12 @@ class ChangeGroupingDialog(val activity: BaseSimpleActivity, val path: String = 
     init {
         currGrouping = config.getFolderGrouping(pathToUse)
         binding = DialogChangeGroupingBinding.inflate(activity.layoutInflater).apply {
-            groupingDialogUseForThisFolder.isChecked = config.hasCustomGrouping(pathToUse)
+            if (pathToUse == com.goodwy.gallery.helpers.RECYCLE_BIN) {
+                groupingDialogUseForThisFolder.beGone()
+                groupingDialogUseForThisFolder.isChecked = true
+            } else {
+                groupingDialogUseForThisFolder.isChecked = config.hasCustomGrouping(pathToUse)
+            }
             groupingDialogRadioFolder.beVisibleIf(path.isEmpty())
         }
 

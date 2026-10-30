@@ -412,9 +412,7 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(WAS_RECYCLE_BIN_PINNED, false)
         set(wasRecycleBinPinned) = prefs.edit { putBoolean(WAS_RECYCLE_BIN_PINNED, wasRecycleBinPinned) }
 
-    var wereOldRecycleBinItemsMigrated: Boolean
-        get() = prefs.getBoolean(WERE_OLD_RECYCLE_BIN_ITEMS_MIGRATED, false)
-        set(wereOldRecycleBinItemsMigrated) = prefs.edit { putBoolean(WERE_OLD_RECYCLE_BIN_ITEMS_MIGRATED, wereOldRecycleBinItemsMigrated) }
+
 
     var wasSVGShowingHandled: Boolean
         get() = prefs.getBoolean(WAS_SVG_SHOWING_HANDLED, false)

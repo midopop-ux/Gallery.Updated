@@ -130,7 +130,6 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             config.tempSkipRecycleBin = false
             removeTempFolder()
             checkRecycleBinItems()
-            checkOldRecycleBinMigration()
             startNewPhotoFetcher()
         }
 
@@ -1786,82 +1785,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
     }
 
-    private fun checkOldRecycleBinMigration() {
-        if (config.wereOldRecycleBinItemsMigrated) return
 
-        ensureBackgroundThread {
-            try {
-                val candidateDirs = ArrayList<File>()
-                val internalFilesDir = filesDir
-                if (internalFilesDir != null && internalFilesDir.exists()) {
-                    candidateDirs.add(internalFilesDir)
-                }
-
-                val mpRecycleBin = File("/storage/emulated/0/MP Manager/Recycle Bin")
-                if (mpRecycleBin.exists()) {
-                    candidateDirs.add(mpRecycleBin)
-                }
-
-                val globalTrash = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), ".globalTrash")
-                if (globalTrash.exists()) {
-                    candidateDirs.add(globalTrash)
-                }
-
-                val targetBin = recycleBin
-                var totalFound = 0
-                val filesToMigrate = ArrayList<File>()
-
-                candidateDirs.forEach { dir ->
-                    if (dir.absolutePath != targetBin.absolutePath) {
-                        dir.walkTopDown().forEach { f ->
-                            if (f.isFile && f.name != ".nomedia" && !f.absolutePath.startsWith(targetBin.absolutePath)) {
-                                filesToMigrate.add(f)
-                                totalFound++
-                            }
-                        }
-                    }
-                }
-
-                if (totalFound == 0) {
-                    config.wereOldRecycleBinItemsMigrated = true
-                    return@ensureBackgroundThread
-                }
-
-                runOnUiThread {
-                    if (isFinishing || isDestroyed) return@runOnUiThread
-                    com.goodwy.commons.dialogs.ConfirmationDialog(
-                        activity = this,
-                        message = getString(R.string.migrate_recycle_bin_prompt),
-                        positive = com.goodwy.commons.R.string.ok,
-                        negative = com.goodwy.commons.R.string.cancel
-                    ) {
-                        config.wereOldRecycleBinItemsMigrated = true
-                        ensureBackgroundThread {
-                            try {
-                                val now = System.currentTimeMillis()
-                                filesToMigrate.forEach { srcFile ->
-                                    val destFile = File(targetBin, srcFile.name)
-                                    val lastModified = srcFile.lastModified()
-                                    if (srcFile.copyRecursively(destFile, overwrite = true)) {
-                                        srcFile.delete()
-                                        if (lastModified != 0L) {
-                                            destFile.setLastModified(lastModified)
-                                        }
-                                        // Update or insert into media DB as deleted item
-                                        val mediaPath = "$RECYCLE_BIN/${srcFile.name}"
-                                        mediaDB.updateDeleted(mediaPath, now, srcFile.absolutePath)
-                                    }
-                                }
-                                runOnUiThread {
-                                    toast(R.string.migrated_recycle_bin_successfully)
-                                }
-                            } catch (_: Exception) {}
-                        }
-                    }
-                }
-            } catch (_: Exception) {}
-        }
-    }
 
     // exclude probably unwanted folders, for example facebook stickers are split between hundreds of separate folders like
     // /storage/emulated/0/Android/data/com.facebook.orca/files/stickers/175139712676531/209575122566323
