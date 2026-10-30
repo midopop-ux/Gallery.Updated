@@ -21,6 +21,7 @@ import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.Handler
 import android.provider.MediaStore
+import com.goodwy.gallery.extensions.updateDateTimeForPaths
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowManager
@@ -267,6 +268,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 R.id.menu_print -> printFile()
                 R.id.menu_edit -> openEditor(getCurrentPath())
                 R.id.menu_properties -> showProperties()
+                R.id.menu_change_date_time -> changeDateTime()
                 R.id.menu_show_on_map -> showFileOnMap(getCurrentPath())
                 R.id.menu_rotate_right -> rotateImage(90)
                 R.id.menu_rotate_left -> rotateImage(-90)
@@ -841,6 +843,38 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     private fun showProperties() {
         if (getCurrentMedium() != null) {
             PropertiesDialog(this, getCurrentPath(), false)
+        }
+    }
+
+    private fun changeDateTime() {
+        val currentMedium = getCurrentMedium() ?: return
+        val currentPath = getCurrentPath()
+        val initialLastModified = File(currentPath).lastModified()
+        val initialDateTaken = currentMedium.taken
+
+        com.goodwy.gallery.dialogs.ChangeDateTimeDialog(
+            this,
+            initialDateTaken,
+            initialLastModified
+        ) { updateDateTaken, newDateTaken, updateLastModified, newLastModified ->
+            handleLockedFolderOpening(currentPath) { success ->
+                if (success) {
+                    updateDateTimeForPaths(
+                        arrayListOf(currentPath),
+                        updateDateTaken,
+                        newDateTaken,
+                        updateLastModified,
+                        newLastModified
+                    ) {
+                        if (updateDateTaken) {
+                            currentMedium.taken = newDateTaken
+                        }
+                        if (updateLastModified) {
+                            currentMedium.modified = newLastModified
+                        }
+                    }
+                }
+            }
         }
     }
 

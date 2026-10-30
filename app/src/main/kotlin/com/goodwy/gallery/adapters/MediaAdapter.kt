@@ -162,6 +162,7 @@ class MediaAdapter(
             findItem(R.id.cab_rename).isVisible = !isInRecycleBin
             findItem(R.id.cab_add_to_favorites).isVisible = !isInRecycleBin
             findItem(R.id.cab_fix_date_taken).isVisible = !isInRecycleBin
+            findItem(R.id.cab_change_date_time).isVisible = !isInRecycleBin
             findItem(R.id.cab_move_to).isVisible = !isInRecycleBin
             findItem(R.id.cab_open_with).isVisible = isOneItemSelected
             findItem(R.id.cab_edit).isVisible = isOneItemSelected
@@ -201,6 +202,7 @@ class MediaAdapter(
             R.id.cab_select_all -> selectAll()
             R.id.cab_open_with -> openPath()
             R.id.cab_fix_date_taken -> fixDateTaken()
+            R.id.cab_change_date_time -> changeDateTime()
             R.id.cab_set_as -> setAs()
             R.id.cab_resize -> resize()
             R.id.cab_delete -> checkDeleteConfirmation()
@@ -527,6 +529,35 @@ class MediaAdapter(
             activity.fixDateTaken(getSelectedPaths(), true) {
                 listener?.refreshItems()
                 finishActMode()
+            }
+        }
+    }
+
+    private fun changeDateTime() {
+        val selectedMedia = getSelectedMedia()
+        val firstMedium = selectedMedia.firstOrNull() ?: return
+        val selectedPaths = getSelectedPaths()
+        val initialLastModified = File(firstMedium.path).lastModified()
+        val initialDateTaken = firstMedium.taken
+
+        com.goodwy.gallery.dialogs.ChangeDateTimeDialog(
+            activity,
+            initialDateTaken,
+            initialLastModified
+        ) { updateDateTaken, newDateTaken, updateLastModified, newLastModified ->
+            activity.handleLockedFolderOpening(firstMedium.path) { success ->
+                if (success) {
+                    activity.updateDateTimeForPaths(
+                        selectedPaths,
+                        updateDateTaken,
+                        newDateTaken,
+                        updateLastModified,
+                        newLastModified
+                    ) {
+                        listener?.refreshItems()
+                        finishActMode()
+                    }
+                }
             }
         }
     }

@@ -712,6 +712,122 @@ fun AppCompatActivity.fixDateTaken(
     }
 }
 
+fun AppCompatActivity.updateDateTimeForPaths(
+    paths: ArrayList<String>,
+    updateDateTaken: Boolean,
+    newDateTaken: Long,
+    updateLastModified: Boolean,
+    newLastModified: Long,
+    callback: (() -> Unit)? = null
+) {
+    if (paths.isEmpty() || (!updateDateTaken && !updateLastModified)) {
+        callback?.invoke()
+        return
+    }
+
+    toast(R.string.fixing)
+    ensureBackgroundThread {
+        var didUpdateAny = false
+        val BATCH_SIZE = 50
+        val operations = ArrayList<ContentProviderOperation>()
+        val dateTakensToInsert = ArrayList<DateTaken>()
+        val exifDateFormat = SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.ENGLISH)
+        val formattedExifDate = exifDateFormat.format(Date(newDateTaken))
+
+        for (path in paths) {
+            try {
+                val file = File(path)
+                if (!file.exists()) continue
+
+                // 1. Update EXIF if requested and file is image
+                if (updateDateTaken && path.isImageFast()) {
+                    try {
+                        val exif = ExifInterface(path)
+                        exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, formattedExifDate)
+                        exif.setAttribute(ExifInterface.TAG_DATETIME, formattedExifDate)
+                        exif.setAttribute(ExifInterface.TAG_DATETIME_DIGITIZED, formattedExifDate)
+                        exif.saveAttributes()
+                    } catch (_: Exception) {}
+                }
+
+                // 2. Update File lastModified on filesystem if requested
+                if (updateLastModified) {
+                    try {
+                        file.setLastModified(newLastModified)
+                    } catch (_: Exception) {}
+                }
+
+                val actualLastModified = file.lastModified()
+
+                // 3. Prepare MediaStore update
+                val uri = getFileUri(path)
+                ContentProviderOperation.newUpdate(uri).apply {
+                    val selection = "${Images.Media.DATA} = ?"
+                    val selectionArgs = arrayOf(path)
+                    withSelection(selection, selectionArgs)
+                    if (updateDateTaken) {
+                        withValue(Images.Media.DATE_TAKEN, newDateTaken)
+                    }
+                    if (updateLastModified) {
+                        withValue(MediaStore.MediaColumns.DATE_MODIFIED, actualLastModified / 1000L)
+                    }
+                    operations.add(build())
+                }
+
+                if (operations.size % BATCH_SIZE == 0) {
+                    try {
+                        contentResolver.applyBatch(MediaStore.AUTHORITY, operations)
+                    } catch (_: Exception) {}
+                    operations.clear()
+                }
+
+                // 4. Update Room Database
+                if (updateDateTaken) {
+                    mediaDB.updateFavoriteDateTaken(path, newDateTaken)
+                    val dateTakenEntry = DateTaken(
+                        null,
+                        path,
+                        path.getFilenameFromPath(),
+                        path.getParentPath(),
+                        newDateTaken,
+                        (System.currentTimeMillis() / 1000).toInt(),
+                        actualLastModified
+                    )
+                    dateTakensToInsert.add(dateTakenEntry)
+                }
+
+                didUpdateAny = true
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        if (operations.isNotEmpty()) {
+            try {
+                contentResolver.applyBatch(MediaStore.AUTHORITY, operations)
+            } catch (_: Exception) {}
+            operations.clear()
+        }
+
+        if (dateTakensToInsert.isNotEmpty()) {
+            try {
+                dateTakensDB.insertAll(dateTakensToInsert)
+            } catch (_: Exception) {}
+        }
+
+        rescanPaths(paths) {
+            runOnUiThread {
+                if (didUpdateAny) {
+                    toast(R.string.date_time_updated_successfully)
+                } else {
+                    toast(R.string.failed_to_update_date_time)
+                }
+                callback?.invoke()
+            }
+        }
+    }
+}
+
 fun BaseSimpleActivity.saveRotatedImageToFile(oldPath: String, newPath: String, degrees: Int, showToasts: Boolean, callback: () -> Unit) {
     var newDegrees = degrees
     if (newDegrees < 0) {

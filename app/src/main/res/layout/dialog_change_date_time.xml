@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dialog_scrollview"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/activity_margin"
+        android:paddingTop="@dimen/medium_margin"
+        android:paddingEnd="@dimen/activity_margin"
+        android:paddingBottom="@dimen/medium_margin">
+
+        <CheckBox
+            android:id="@+id/change_date_taken_checkbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/change_date_taken"
+            android:textSize="@dimen/normal_text_size" />
+
+        <LinearLayout
+            android:id="@+id/date_taken_holder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/activity_margin"
+            android:layout_marginTop="@dimen/small_margin"
+            android:layout_marginBottom="@dimen/medium_margin"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/date_taken_date_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:padding="@dimen/medium_margin"
+                android:textSize="@dimen/normal_text_size" />
+
+            <TextView
+                android:id="@+id/date_taken_time_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:padding="@dimen/medium_margin"
+                android:textSize="@dimen/normal_text_size" />
+        </LinearLayout>
+
+        <CheckBox
+            android:id="@+id/change_last_modified_checkbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/change_last_modified"
+            android:textSize="@dimen/normal_text_size" />
+
+        <LinearLayout
+            android:id="@+id/last_modified_holder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/activity_margin"
+            android:layout_marginTop="@dimen/small_margin"
+            android:layout_marginBottom="@dimen/medium_margin"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/last_modified_date_value"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackground"
+                android:padding="@dimen/medium_margin"
+                android:textSize="@dimen/normal_text_size" />
+
+            <TextView
+                android:id="@+id/last_modified_time_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:padding="@dimen/medium_margin"
+                android:textSize="@dimen/normal_text_size" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
