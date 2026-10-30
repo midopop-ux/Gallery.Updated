@@ -6,6 +6,7 @@ import androidx.appcompat.app.AlertDialog
 import com.goodwy.commons.activities.BaseSimpleActivity
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.formatDate
+import com.goodwy.commons.extensions.getAlertDialogBuilder
 import com.goodwy.commons.extensions.getTimeFormat
 import com.goodwy.commons.extensions.setupDialogStuff
 import com.goodwy.gallery.R
