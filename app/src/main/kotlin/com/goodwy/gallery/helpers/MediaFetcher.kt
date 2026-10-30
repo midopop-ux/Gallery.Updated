@@ -805,6 +805,7 @@ class MediaFetcher(val context: Context) {
 
                 sorting and SORT_BY_SIZE != 0 -> o1.size.compareTo(o2.size)
                 sorting and SORT_BY_DATE_MODIFIED != 0 -> o1.modified.compareTo(o2.modified)
+                sorting and SORT_BY_DATE_DELETED != 0 -> o1.deletedTS.compareTo(o2.deletedTS)
                 else -> o1.taken.compareTo(o2.taken)
             }
 

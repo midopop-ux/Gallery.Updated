@@ -964,6 +964,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
         toast(com.goodwy.commons.R.string.saving)
         ensureBackgroundThread {
+            backupToRecycleBin(oldPath)
             try {
                 newFile.inputStream().use { input ->
                     FileOutputStream(oldFile).use { output ->

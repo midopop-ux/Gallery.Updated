@@ -157,7 +157,23 @@ val Context.favoritesDB: FavoritesDao
 val Context.dateTakensDB: DateTakensDao
     get() = GalleryDatabase.getInstance(applicationContext).DateTakensDao()
 
-val Context.recycleBin: File get() = filesDir
+val Context.recycleBin: File
+    get() {
+        val dcim = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+        val dir = File(File(dcim, "Goodwy Gallery"), ".recycle_bin")
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        val noMedia = File(dir, ".nomedia")
+        if (!noMedia.exists()) {
+            try {
+                noMedia.createNewFile()
+            } catch (_: Exception) {}
+        }
+        return dir
+    }
+
+val Context.recycleBinPath: String get() = recycleBin.absolutePath
 
 fun Context.movePinnedDirectoriesToFront(dirs: ArrayList<Directory>): ArrayList<Directory> {
     val foundFolders = ArrayList<Directory>()

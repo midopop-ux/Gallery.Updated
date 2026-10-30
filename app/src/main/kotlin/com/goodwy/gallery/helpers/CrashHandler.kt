@@ -101,9 +101,10 @@ class CrashHandler private constructor(private val application: Application) : T
     }
 
     private fun saveCrashReportToDisk(report: String) {
+        val dcim = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+        val logsDir = File(File(dcim, "Goodwy Gallery"), "Logs")
         val targets = listOf(
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "gallery_crash.log"),
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "gallery_crash.log"),
+            File(logsDir, "gallery_crash.log"),
             File(application.filesDir, "gallery_crash.log")
         )
 

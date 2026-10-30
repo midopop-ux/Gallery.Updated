@@ -56,6 +56,13 @@
                 android:text="@string/date_taken" />
 
             <com.goodwy.commons.views.MyCompatRadioButton
+                android:id="@+id/sorting_dialog_radio_date_deleted"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:text="@string/date_deleted" />
+
+            <com.goodwy.commons.views.MyCompatRadioButton
                 android:id="@+id/sorting_dialog_radio_random"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

@@ -55,6 +55,7 @@ import com.goodwy.gallery.extensions.mediaDB
 import com.goodwy.gallery.extensions.openEditor
 import com.goodwy.gallery.extensions.updateDateTimeForPaths
 import com.goodwy.gallery.extensions.tweakTimestampByOneSecond
+import com.goodwy.gallery.extensions.backupToRecycleBin
 import com.goodwy.gallery.models.Medium
 import com.goodwy.gallery.helpers.*
 import com.goodwy.gallery.interfaces.CanvasListener
@@ -1165,6 +1166,10 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             ensureBackgroundThread {
                 val file = File(path)
                 val fileDirItem = FileDirItem(path, path.getFilenameFromPath())
+                val isOverwriting = (path == originalFilePath) || overwriteRequested
+                if (isOverwriting && file.exists()) {
+                    backupToRecycleBin(path)
+                }
                 try {
                     val out = FileOutputStream(file)
                     saveBitmapToFile(file, bitmap, out, showSavingToast)

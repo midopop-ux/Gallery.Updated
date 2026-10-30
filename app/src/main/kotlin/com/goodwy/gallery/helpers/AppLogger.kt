@@ -25,19 +25,16 @@ object AppLogger {
 
     fun init(context: Context) {
         try {
-            val downloadLog = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "gallery_debug.log"
-            )
-            val documentLog = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
-                "gallery_debug.log"
-            )
+            val dcim = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+            val logsDir = File(File(dcim, "Goodwy Gallery"), "Logs")
+            if (!logsDir.exists()) {
+                logsDir.mkdirs()
+            }
+            val galleryLog = File(logsDir, "gallery_debug.log")
             val internalLog = File(context.filesDir, "gallery_debug.log")
 
             logFiles.clear()
-            logFiles.add(downloadLog)
-            logFiles.add(documentLog)
+            logFiles.add(galleryLog)
             logFiles.add(internalLog)
         } catch (_: Exception) {}
 

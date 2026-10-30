@@ -47,6 +47,7 @@ class ChangeSortingDialog(
             sortingDialogUseForThisFolder.isChecked = config.hasCustomSorting(pathToUse)
             sortingDialogBottomNote.beVisibleIf(!isDirectorySorting)
             sortingDialogRadioCustom.beVisibleIf(isDirectorySorting)
+            sortingDialogRadioDateDeleted.beVisibleIf(!isDirectorySorting && pathToUse == com.goodwy.gallery.helpers.RECYCLE_BIN)
         }
 
         activity.getAlertDialogBuilder()
@@ -82,6 +83,7 @@ class ChangeSortingDialog(
         }
 
         val sortBtn = when {
+            currSorting and com.goodwy.gallery.helpers.SORT_BY_DATE_DELETED != 0 -> binding.sortingDialogRadioDateDeleted
             currSorting and SORT_BY_PATH != 0 -> binding.sortingDialogRadioPath
             currSorting and SORT_BY_SIZE != 0 -> binding.sortingDialogRadioSize
             currSorting and SORT_BY_COUNT != 0 -> binding.sortingDialogRadioNumberOfItems
@@ -106,6 +108,7 @@ class ChangeSortingDialog(
     override fun onClick(dialog: DialogInterface, which: Int) {
         val sortingRadio = binding.sortingDialogRadioSorting
         var sorting = when (sortingRadio.checkedRadioButtonId) {
+            R.id.sorting_dialog_radio_date_deleted -> com.goodwy.gallery.helpers.SORT_BY_DATE_DELETED
             R.id.sorting_dialog_radio_name -> SORT_BY_NAME
             R.id.sorting_dialog_radio_path -> SORT_BY_PATH
             R.id.sorting_dialog_radio_size -> SORT_BY_SIZE

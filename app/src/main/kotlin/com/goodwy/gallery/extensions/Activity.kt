@@ -740,6 +740,24 @@ fun tweakTimestampByOneSecond(timestamp: Long): Long {
     return cal.timeInMillis
 }
 
+fun Context.backupToRecycleBin(sourcePath: String) {
+    if (!config.useRecycleBin) return
+    try {
+        val srcFile = File(sourcePath)
+        if (!srcFile.exists()) return
+
+        val internalFile = File(recycleBinPath, sourcePath)
+        val lastModified = srcFile.lastModified()
+        if (srcFile.copyRecursively(internalFile, true)) {
+            val now = System.currentTimeMillis()
+            mediaDB.updateDeleted("$RECYCLE_BIN$sourcePath", now, sourcePath)
+            if (config.keepLastModified && lastModified != 0L) {
+                internalFile.setLastModified(lastModified)
+            }
+        }
+    } catch (_: Exception) {}
+}
+
 fun AppCompatActivity.updateDateTimeForPaths(
     paths: ArrayList<String>,
     updateDateTaken: Boolean,
