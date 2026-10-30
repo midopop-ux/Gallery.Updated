@@ -51,7 +51,9 @@ import com.goodwy.gallery.extensions.rescanFolderMediaSync
 import com.goodwy.gallery.extensions.showContentDescriptionOnLongClick
 import com.goodwy.gallery.extensions.writeBitmapToCache
 import com.goodwy.gallery.extensions.fixDateTaken
+import com.goodwy.gallery.extensions.mediaDB
 import com.goodwy.gallery.extensions.openEditor
+import com.goodwy.gallery.extensions.updateDateTimeForPaths
 import com.goodwy.gallery.helpers.*
 import com.goodwy.gallery.interfaces.CanvasListener
 import com.goodwy.gallery.models.FilterItem
@@ -100,6 +102,9 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     private val binding by viewBinding(ActivityEditBinding::inflate)
 
     private var overwriteRequested = false
+    private var originalLastModified = 0L
+    private var originalDateTaken = 0L
+    private var originalFilePath = ""
 
     override val cropImageView: CropImageView
         get() = binding.cropImageView
@@ -228,6 +233,31 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                 && extras.get(MediaStore.EXTRA_OUTPUT) is Uri -> extras.get(MediaStore.EXTRA_OUTPUT) as Uri
             else -> uri!!
         }
+
+        try {
+            val srcPath = if (extras?.containsKey(REAL_FILE_PATH) == true) {
+                extras.getString(REAL_FILE_PATH) ?: ""
+            } else {
+                getRealPathFromURI(uri!!) ?: uri?.path ?: ""
+            }
+            if (srcPath.isNotEmpty()) {
+                originalFilePath = srcPath
+                val file = File(srcPath)
+                if (file.exists()) {
+                    originalLastModified = file.lastModified()
+                }
+                val exif = readExif(uri!!)
+                val dateString = exif?.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+                    ?: exif?.getAttribute(ExifInterface.TAG_DATETIME)
+                if (dateString != null) {
+                    val format = java.text.SimpleDateFormat("yyyy:MM:dd HH:mm:ss", java.util.Locale.ENGLISH)
+                    originalDateTaken = format.parse(dateString)?.time ?: 0L
+                }
+                if (originalDateTaken == 0L) {
+                    originalDateTaken = originalLastModified
+                }
+            }
+        } catch (_: Exception) {}
 
         if (isCropIntent) {
             binding.bottomEditorPrimaryActions.root.beGone()
@@ -1052,6 +1082,11 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
         val completeOnUi = {
             runOnUiThread {
+                try {
+                    Glide.get(applicationContext).clearMemory()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
                 setResult(RESULT_OK, resultIntent)
                 completion()
             }
@@ -1059,16 +1094,40 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
         val resyncFolders = {
             ensureBackgroundThread {
+                for (path in pathsToScan) {
+                    try {
+                        val file = File(path)
+                        if (file.exists()) {
+                            mediaDB.updateMediumModifiedAndSize(path, file.lastModified(), file.length())
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+
                 foldersToResync.forEach { folderPath ->
-                    applicationContext.rescanFolderMediaSync(folderPath)
+                    try {
+                        applicationContext.rescanFolderMediaSync(folderPath)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
                 completeOnUi()
             }
         }
 
         if (pathsToScan.isNotEmpty()) {
-            rescanPaths(pathsToScan) {
-                fixDateTaken(pathsToScan, false)
+            try {
+                rescanPaths(pathsToScan) {
+                    try {
+                        fixDateTaken(pathsToScan, false) {
+                            resyncFolders()
+                        }
+                    } catch (e: Exception) {
+                        resyncFolders()
+                    }
+                }
+            } catch (e: Exception) {
                 resyncFolders()
             }
         } else {
@@ -1137,9 +1196,32 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         }
 
         writeExif(oldExif, file.toUri())
-        finalizeEditedMedia(arrayListOf(file.absolutePath), intent) {
-            toast(com.goodwy.commons.R.string.file_saved)
-            finish()
+
+        val isOverwritingOriginal = (file.absolutePath == originalFilePath) || overwriteRequested
+        fun proceedFinalize() {
+            finalizeEditedMedia(arrayListOf(file.absolutePath), intent) {
+                toast(com.goodwy.commons.R.string.file_saved)
+                finish()
+            }
+        }
+
+        if (isOverwritingOriginal && (originalLastModified > 0L || originalDateTaken > 0L)) {
+            if (originalLastModified > 0L) {
+                try {
+                    file.setLastModified(originalLastModified)
+                } catch (_: Exception) {}
+            }
+            updateDateTimeForPaths(
+                paths = arrayListOf(file.absolutePath),
+                updateDateTaken = originalDateTaken > 0L,
+                newDateTaken = originalDateTaken,
+                updateLastModified = originalLastModified > 0L,
+                newLastModified = originalLastModified
+            ) {
+                proceedFinalize()
+            }
+        } else {
+            proceedFinalize()
         }
     }
 

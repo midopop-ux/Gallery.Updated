@@ -682,26 +682,42 @@ fun AppCompatActivity.fixDateTaken(
                 return@ensureBackgroundThread
             }
 
-            val resultSize = contentResolver.applyBatch(MediaStore.AUTHORITY, operations).size
-            if (resultSize == 0) {
-                didUpdateFile = false
-            }
-
-            if (hasRescanned || pathsToRescan.isEmpty()) {
-                if (dateTakens.isNotEmpty()) {
-                    dateTakensDB.insertAll(dateTakens)
+            try {
+                if (operations.isNotEmpty()) {
+                    try {
+                        val resultSize = contentResolver.applyBatch(MediaStore.AUTHORITY, operations).size
+                        if (resultSize == 0) {
+                            didUpdateFile = false
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
 
-                runOnUiThread {
-                    if (showToasts) {
-                        toast(if (didUpdateFile) R.string.dates_fixed_successfully else com.goodwy.commons.R.string.unknown_error_occurred)
+                if (hasRescanned || pathsToRescan.isEmpty()) {
+                    if (dateTakens.isNotEmpty()) {
+                        try {
+                            dateTakensDB.insertAll(dateTakens)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
 
-                    callback?.invoke()
+                    runOnUiThread {
+                        if (showToasts) {
+                            toast(if (didUpdateFile) R.string.dates_fixed_successfully else com.goodwy.commons.R.string.unknown_error_occurred)
+                        }
+                        callback?.invoke()
+                    }
+                } else {
+                    rescanPaths(pathsToRescan) {
+                        fixDateTaken(paths, showToasts, true, callback)
+                    }
                 }
-            } else {
-                rescanPaths(pathsToRescan) {
-                    fixDateTaken(paths, showToasts, true, callback)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    callback?.invoke()
                 }
             }
         }
