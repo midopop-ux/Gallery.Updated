@@ -281,4 +281,6 @@
     <string name="change_last_modified">تغيير تاريخ آخر تعديل للملف</string>
     <string name="date_time_updated_successfully">تم تحديث التاريخ والوقت بنجاح</string>
     <string name="failed_to_update_date_time">فشل تحديث التاريخ والوقت</string>
+    <string name="current_time">الوقت الحالي</string>
+    <string name="invalid_date_format">صيغة التاريخ/الوقت غير صالحة. يرجى استخدام YYYY-MM-DD HH:MM:SS</string>
 </resources>

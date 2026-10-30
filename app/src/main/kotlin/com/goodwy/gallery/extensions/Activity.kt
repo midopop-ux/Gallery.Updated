@@ -1207,16 +1207,23 @@ fun BaseSimpleActivity.ensureWritablePath(
         }
     }
 
-    if (confirmOverwrite && getDoesFilePathExist(targetPath)) {
-        val title = String.format(
-            getString(com.goodwy.commons.R.string.file_already_exists_overwrite),
-            targetPath.getFilenameFromPath()
-        )
-        ConfirmationDialog(this, title) {
+    runOnUiThread {
+        if (confirmOverwrite && getDoesFilePathExist(targetPath)) {
+            val title = String.format(
+                getString(com.goodwy.commons.R.string.file_already_exists_overwrite),
+                targetPath.getFilenameFromPath()
+            )
+            ConfirmationDialog(
+                activity = this,
+                message = title,
+                positive = com.goodwy.commons.R.string.yes,
+                negative = com.goodwy.commons.R.string.no
+            ) {
+                requestGrantsThenProceed()
+            }
+        } else {
             requestGrantsThenProceed()
         }
-    } else {
-        requestGrantsThenProceed()
     }
 }
 

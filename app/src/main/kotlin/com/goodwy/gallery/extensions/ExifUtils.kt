@@ -160,18 +160,30 @@ fun Context.readExif(uri: Uri): ExifInterface? {
 
 fun Context.writeExif(exif: ExifInterface?, uri: Uri?) {
     if (exif == null || uri == null) return
-    resolveUriScheme(
-        uri = uri,
-        onContentUri = {
-            contentResolver.openFileDescriptor(it, "rw")?.use { pfd ->
-                val destExif = ExifInterface(pfd.fileDescriptor)
-                exif.copyNonDimensionAttributesTo(destExif)
+    try {
+        resolveUriScheme(
+            uri = uri,
+            onContentUri = {
+                try {
+                    contentResolver.openFileDescriptor(it, "rw")?.use { pfd ->
+                        val destExif = ExifInterface(pfd.fileDescriptor)
+                        exif.copyNonDimensionAttributesTo(destExif)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            },
+            onPath = {
+                try {
+                    val file = File(it)
+                    val destExif = ExifInterface(file.absolutePath)
+                    exif.copyNonDimensionAttributesTo(destExif)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
-        },
-        onPath = {
-            val file = File(it)
-            val destExif = ExifInterface(file.absolutePath)
-            exif.copyNonDimensionAttributesTo(destExif)
-        }
-    )
+        )
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
 }
