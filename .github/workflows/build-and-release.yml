@@ -31,47 +31,59 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build FOSS Release APK (with R8 Proguard optimizations)
+      - name: Build APK (Debug for test branch, Release for others)
         run: |
-          ./gradlew assembleFossRelease
+          if [ "${{ github.ref_name }}" = "test" ]; then
+            echo "Building Debug variant for test branch..."
+            ./gradlew assembleFossDebug
+          else
+            echo "Building Release variant..."
+            ./gradlew assembleFossRelease
+          fi
 
-      - name: Sign Release APK with Android Debug Keystore
+      - name: Prepare and Sign APK
         run: |
-          # Use Android build-tools apksigner to sign the release APK so it installs directly on Android
-          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
-          echo "Using Build Tools at $BUILD_TOOLS_DIR"
-          
-          # Generate a standard signing keystore
-          keytool -genkey -v -keystore release-key.jks -alias gallery -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Gallery, OU=Android, O=Goodwy, L=Unknown, S=Unknown, C=US"
-          
           mkdir -p output_apks
-          for unsigned_apk in $(find app/build/outputs/apk/ -name "*unsigned.apk"); do
-            signed_apk="output_apks/$(basename "$unsigned_apk" -unsigned.apk)-signed.apk"
-            echo "Signing $unsigned_apk -> $signed_apk"
-            $BUILD_TOOLS_DIR/apksigner sign --ks release-key.jks --ks-pass pass:android --ks-key-alias gallery --key-pass pass:android --out "$signed_apk" "$unsigned_apk"
-          done
+          if [ "${{ github.ref_name }}" = "test" ]; then
+            echo "Collecting Debug APKs (already signed by Gradle with debug keystore)..."
+            for debug_apk in $(find app/build/outputs/apk/ -name "*debug.apk"); do
+              echo "Found debug APK: $debug_apk"
+              cp "$debug_apk" "output_apks/$(basename "$debug_apk")"
+            done
+          else
+            BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+            echo "Using Build Tools at $BUILD_TOOLS_DIR"
+            
+            keytool -genkey -v -keystore release-key.jks -alias gallery -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Gallery, OU=Android, O=Goodwy, L=Unknown, S=Unknown, C=US"
+            
+            for unsigned_apk in $(find app/build/outputs/apk/ -name "*unsigned.apk"); do
+              signed_apk="output_apks/$(basename "$unsigned_apk" -unsigned.apk)-signed.apk"
+              echo "Signing $unsigned_apk -> $signed_apk"
+              $BUILD_TOOLS_DIR/apksigner sign --ks release-key.jks --ks-pass pass:android --ks-key-alias gallery --key-pass pass:android --out "$signed_apk" "$unsigned_apk"
+            done
+          fi
           
           ls -la output_apks/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Gallery-Release-APK
+          name: Gallery-${{ github.ref_name }}-APK
           path: output_apks/*.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/unified-gallery'
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/unified-gallery' || github.ref == 'refs/heads/test'
         with:
           tag_name: ${{ github.ref_name }}
-          name: Gallery Release ${{ github.ref_name }}
+          name: Gallery ${{ github.ref_name == 'test' && 'Debug Diagnostics Build' || 'Release' }} (${{ github.ref_name }})
           body: |
-            Optimized Release APK with:
-            - Minified & Optimized with R8 Proguard
-            - Merged PR #36 (Thumbnail cache controls & optimization)
-            - Merged PR #46 (8.4.0 Optimization cocktail, bug fixes)
-            - Merged PR #47 (Memory leaks & null safety fixes)
-            - New Feature: Edit Date Taken (EXIF) and File Last Modified timestamp
+            ### Gallery APK Build (${{ github.ref_name }})
+            - **Variant**: ${{ github.ref_name == 'test' && 'Debug (FOSS) with full line numbers and debuggable mode' || 'Release (FOSS) optimized with R8/Proguard' }}
+            - **In-App Crash Reporter**: Integrated `CrashHandler` and `AppLogger` breadcrumbs tracker
+            - **Dedicated Crash Process**: Crash screen runs in isolated `:crash` process with one-click Copy / Share report
+            - **Native Gallery Picker**: 'Replace Old' uses native chronological Gallery grid instead of folder file-tree
+            - **Timestamp Preservation**: Automatically maintains `Date Taken` (EXIF) and `Last Modified` on overwrite
           files: output_apks/*.apk
           draft: false
-          prerelease: false
+          prerelease: ${{ github.ref_name == 'test' }}

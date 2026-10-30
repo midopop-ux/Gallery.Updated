@@ -76,6 +76,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     companion object {
         private const val REQUEST_VIEW_VIDEO = 1
         private const val SAVED_PATH = "current_path"
+        private const val PICK_OLD_FILE_INTENT = 9923
     }
 
     private var mPath = ""
@@ -301,7 +302,17 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
-        if (requestCode == REQUEST_EDIT_IMAGE && resultCode == RESULT_OK && resultData != null) {
+        if (requestCode == PICK_OLD_FILE_INTENT && resultCode == RESULT_OK && resultData != null) {
+            val oldPath = resultData.getStringExtra(REAL_FILE_PATH)
+                ?: resultData.data?.let { uri ->
+                    if (uri.scheme == "file") uri.path else (getRealPathFromURI(uri) ?: uri.path)
+                }
+
+            if (!oldPath.isNullOrEmpty()) {
+                handleOldFileSelection(oldPath)
+            }
+            return
+        } else if (requestCode == REQUEST_EDIT_IMAGE && resultCode == RESULT_OK && resultData != null) {
             mPos = -1
             mPrevHashcode = 0
             refreshViewPager()
@@ -885,41 +896,45 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun replaceOldFile() {
         val newPath = getCurrentPath()
-        val currentFolder = newPath.getParentPath()
+        AppLogger.recordAction("ReplaceOld initiated for: $newPath")
 
-        com.goodwy.commons.dialogs.FilePickerDialog(
+        Intent(this, MainActivity::class.java).apply {
+            action = Intent.ACTION_PICK
+            type = "image/*"
+            putExtra(SHOW_ALL, true)
+            putExtra(IS_REPLACE_OLD, true)
+            startActivityForResult(this, PICK_OLD_FILE_INTENT)
+        }
+    }
+
+    private fun handleOldFileSelection(oldPath: String) {
+        val newPath = getCurrentPath()
+        AppLogger.recordAction("Old file selected for replacement: $oldPath (new: $newPath)")
+
+        if (oldPath == newPath) {
+            toast(R.string.cannot_replace_same_file)
+            return
+        }
+
+        val oldFile = File(oldPath)
+        if (!oldFile.exists() || !oldPath.isImageFast()) {
+            toast(com.goodwy.commons.R.string.invalid_file_format)
+            return
+        }
+
+        val confirmationMessage = String.format(
+            getString(R.string.replace_old_confirmation),
+            oldPath.getFilenameFromPath()
+        )
+
+        com.goodwy.commons.dialogs.ConfirmationDialog(
             activity = this,
-            currPath = currentFolder,
-            pickFile = true,
-            showHidden = config.shouldShowHidden,
-            showFAB = false,
-            canAddShowHiddenButton = false
-        ) { oldPath ->
-            if (oldPath == newPath) {
-                toast(R.string.cannot_replace_same_file)
-                return@FilePickerDialog
-            }
-
-            val oldFile = File(oldPath)
-            if (!oldFile.exists() || !oldPath.isImageFast()) {
-                toast(com.goodwy.commons.R.string.invalid_file_format)
-                return@FilePickerDialog
-            }
-
-            val confirmationMessage = String.format(
-                getString(R.string.replace_old_confirmation),
-                oldPath.getFilenameFromPath()
-            )
-
-            com.goodwy.commons.dialogs.ConfirmationDialog(
-                activity = this,
-                message = confirmationMessage,
-                positive = com.goodwy.commons.R.string.yes,
-                negative = com.goodwy.commons.R.string.no
-            ) {
-                ensureWritablePath(targetPath = oldPath, confirmOverwrite = false) {
-                    performReplaceOld(newPath = newPath, oldPath = oldPath)
-                }
+            message = confirmationMessage,
+            positive = com.goodwy.commons.R.string.yes,
+            negative = com.goodwy.commons.R.string.no
+        ) {
+            ensureWritablePath(targetPath = oldPath, confirmOverwrite = false) {
+                performReplaceOld(newPath = newPath, oldPath = oldPath)
             }
         }
     }

@@ -132,7 +132,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             startNewPhotoFetcher()
         }
 
-        mIsPickImageIntent = isPickImageIntent(intent)
+        val isReplaceOldIntent = intent.getBooleanExtra(IS_REPLACE_OLD, false)
+        mIsPickImageIntent = isPickImageIntent(intent) || isReplaceOldIntent
         mIsPickVideoIntent = isPickVideoIntent(intent)
         mIsGetImageContentIntent = isGetImageContentIntent(intent)
         mIsGetVideoContentIntent = isGetVideoContentIntent(intent)
@@ -145,6 +146,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             || mIsGetVideoContentIntent
             || mIsGetAnyContentIntent
             || mIsSetWallpaperIntent
+            || isReplaceOldIntent
 
         setupOptionsMenu()
         refreshMenuItems()
@@ -370,6 +372,11 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             if (requestCode == PICK_MEDIA && resultData != null) {
                 val resultIntent = Intent()
                 var resultUri: Uri? = null
+                val pickedPath = resultData.getStringExtra(REAL_FILE_PATH)
+                    ?: resultData.data?.let { if (it.scheme == "file") it.path else null }
+                if (pickedPath != null) {
+                    resultIntent.putExtra(REAL_FILE_PATH, pickedPath)
+                }
                 if (mIsThirdPartyIntent) {
                     when {
                         intent.extras?.containsKey(MediaStore.EXTRA_OUTPUT) == true
@@ -625,7 +632,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             checkOTGPath()
             checkDefaultSpamFolders()
 
-            if (config.showAll) {
+            if (config.showAll || intent.getBooleanExtra(IS_REPLACE_OLD, false) || intent.getBooleanExtra(SHOW_ALL, false)) {
                 showAllMedia()
             } else {
                 getDirectories()

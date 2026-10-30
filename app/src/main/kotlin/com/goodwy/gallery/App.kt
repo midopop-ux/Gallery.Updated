@@ -8,6 +8,8 @@ import com.goodwy.commons.RightApp
 import com.goodwy.commons.helpers.PurchaseHelper
 import com.squareup.picasso.Downloader
 import com.squareup.picasso.Picasso
+import com.goodwy.gallery.helpers.AppLogger
+import com.goodwy.gallery.helpers.CrashHandler
 import okhttp3.Request
 import okhttp3.Response
 
@@ -17,6 +19,8 @@ class App : RightApp() {
 
     override fun onCreate() {
         super.onCreate()
+        AppLogger.init(this)
+        CrashHandler.init(this)
         PurchaseHelper().initPurchaseIfNeed(this, "1504831423")
         Reprint.initialize(this)
         Picasso.setSingletonInstance(Picasso.Builder(this).downloader(object : Downloader {

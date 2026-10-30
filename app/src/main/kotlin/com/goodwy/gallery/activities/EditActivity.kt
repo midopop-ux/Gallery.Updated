@@ -1182,8 +1182,13 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     }
 
     private fun saveBitmapToFile(file: File, bitmap: Bitmap, out: OutputStream, showSavingToast: Boolean) {
+        AppLogger.recordAction("saveBitmapToFile started: ${file.absolutePath} (showSavingToast: $showSavingToast)")
         if (showSavingToast) {
-            toast(com.goodwy.commons.R.string.saving)
+            runOnUiThread {
+                try {
+                    toast(com.goodwy.commons.R.string.saving)
+                } catch (_: Exception) {}
+            }
         }
 
         out.use {
@@ -1196,29 +1201,38 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         }
 
         writeExif(oldExif, file.toUri())
+        AppLogger.recordAction("saveBitmapToFile: writeExif completed for ${file.absolutePath}")
 
         val isOverwritingOriginal = (file.absolutePath == originalFilePath) || overwriteRequested
         fun proceedFinalize() {
+            AppLogger.recordAction("saveBitmapToFile: finalizeEditedMedia for ${file.absolutePath}")
             finalizeEditedMedia(arrayListOf(file.absolutePath), intent) {
-                toast(com.goodwy.commons.R.string.file_saved)
-                finish()
+                runOnUiThread {
+                    try {
+                        toast(com.goodwy.commons.R.string.file_saved)
+                    } catch (_: Exception) {}
+                    finish()
+                }
             }
         }
 
         if (isOverwritingOriginal && (originalLastModified > 0L || originalDateTaken > 0L)) {
+            AppLogger.recordAction("saveBitmapToFile: overwriting original, preserving timestamps (dateTaken=$originalDateTaken, lastModified=$originalLastModified)")
             if (originalLastModified > 0L) {
                 try {
                     file.setLastModified(originalLastModified)
                 } catch (_: Exception) {}
             }
-            updateDateTimeForPaths(
-                paths = arrayListOf(file.absolutePath),
-                updateDateTaken = originalDateTaken > 0L,
-                newDateTaken = originalDateTaken,
-                updateLastModified = originalLastModified > 0L,
-                newLastModified = originalLastModified
-            ) {
-                proceedFinalize()
+            runOnUiThread {
+                updateDateTimeForPaths(
+                    paths = arrayListOf(file.absolutePath),
+                    updateDateTaken = originalDateTaken > 0L,
+                    newDateTaken = originalDateTaken,
+                    updateLastModified = originalLastModified > 0L,
+                    newLastModified = originalLastModified
+                ) {
+                    proceedFinalize()
+                }
             }
         } else {
             proceedFinalize()

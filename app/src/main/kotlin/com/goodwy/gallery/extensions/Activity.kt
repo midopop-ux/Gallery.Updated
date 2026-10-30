@@ -741,7 +741,11 @@ fun AppCompatActivity.updateDateTimeForPaths(
         return
     }
 
-    toast(R.string.fixing)
+    runOnUiThread {
+        try {
+            toast(R.string.fixing)
+        } catch (_: Exception) {}
+    }
     ensureBackgroundThread {
         var didUpdateAny = false
         val BATCH_SIZE = 50

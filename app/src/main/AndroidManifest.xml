@@ -94,6 +94,12 @@
             android:theme="@style/SplashTheme" />
 
         <activity
+            android:name=".activities.CrashReportActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:theme="@style/AppTheme" />
+
+        <activity
             android:name=".activities.MainActivity"
             android:configChanges="orientation"
             android:exported="true"

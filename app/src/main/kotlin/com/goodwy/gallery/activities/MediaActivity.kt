@@ -479,7 +479,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             mStoredMarkFavoriteItems = markFavoriteItems
             mStoredThumbnailSpacing = thumbnailSpacing
             mStoredRoundedCorners = fileRoundedCorners
-            mShowAll = showAll && mPath != RECYCLE_BIN
+            mShowAll = (showAll || intent.getBooleanExtra(SHOW_ALL, false) || intent.getBooleanExtra(IS_REPLACE_OLD, false)) && mPath != RECYCLE_BIN
             mStoredHideTopBarWhenScroll = hideTopBarWhenScroll
             needRestart = false
         }
@@ -1097,6 +1097,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         } else if (mIsGetImageIntent || mIsGetVideoIntent || mIsGetAnyIntent) {
             Intent().apply {
                 data = path.toUri()
+                putExtra(REAL_FILE_PATH, path)
                 setResult(RESULT_OK, this)
             }
             finish()
