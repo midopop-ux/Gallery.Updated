@@ -67,7 +67,7 @@ class ChangeDateTimeDialog(
             }
         }
 
-        AlertDialog.Builder(activity)
+        activity.getAlertDialogBuilder()
             .setPositiveButton(com.goodwy.commons.R.string.ok) { _, _ ->
                 val updateDateTaken = binding.changeDateTakenCheckbox.isChecked
                 val updateLastModified = binding.changeLastModifiedCheckbox.isChecked
@@ -81,7 +81,7 @@ class ChangeDateTimeDialog(
                 }
             }
             .setNegativeButton(com.goodwy.commons.R.string.cancel, null)
-            .create().apply {
+            .apply {
                 activity.setupDialogStuff(binding.root, this, R.string.change_date_time)
             }
     }

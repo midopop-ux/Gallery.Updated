@@ -20,6 +20,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.Target
+import com.goodwy.gallery.extensions.updateDateTimeForPaths
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -534,7 +536,7 @@ class MediaAdapter(
     }
 
     private fun changeDateTime() {
-        val selectedMedia = getSelectedMedia()
+        val selectedMedia = getSelectedItems()
         val firstMedium = selectedMedia.firstOrNull() ?: return
         val selectedPaths = getSelectedPaths()
         val initialLastModified = File(firstMedium.path).lastModified()
