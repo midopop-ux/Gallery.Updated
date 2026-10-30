@@ -423,6 +423,11 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
 
     override fun onDestroy() {
         super.onDestroy()
+        // see the matching comment in VideoPlayerActivity.onDestroy(): the host activities
+        // (ViewPagerActivity/PhotoVideoActivity) already declare
+        // configChanges="orientation|keyboardHidden|screenSize", so they're never destroyed
+        // for those changes - skipping cleanup here on isChangingConfigurations just leaked
+        // the player for any other config change that does destroy them (theme, density, ...)
         cleanup()
 
         if (::mVolumeSideScroll.isInitialized) {
@@ -671,7 +676,11 @@ class VideoFragment : ViewPagerFragment(), TextureView.SurfaceTextureListener,
     }
 
     private fun openPanorama() {
-        TODO("Panorama is not yet implemented.")
+        // Panorama detection (checkIfPanorama()) is disabled pending a FOSS replacement for its
+        // non-free EXIF parsing dependency, so this is never reachable today (mIsPanorama stays
+        // false, panoramaOutline stays gone) - but TODO() throws NotImplementedError if called,
+        // so keep this a no-op rather than a crash if that ever gets re-enabled without also
+        // implementing panorama viewing.
     }
 
     override fun fullscreenToggled(isFullscreen: Boolean) {

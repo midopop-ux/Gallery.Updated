@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.*
 import android.net.Uri
 import com.davemorrissey.labs.subscaleview.ImageRegionDecoder
+import java.io.IOException
 
 class PicassoRegionDecoder(
     val showHighestQuality: Boolean,
@@ -16,11 +17,16 @@ class PicassoRegionDecoder(
 
     override fun init(context: Context, uri: Uri): Point {
         val newUri = Uri.parse(uri.toString().replace("%", "%25").replace("#", "%23"))
-        context.contentResolver.openInputStream(newUri)?.use { inputStream ->
-            decoder = BitmapRegionDecoder.newInstance(inputStream, false)
-        }
-        val currentDecoder = decoder ?: throw IllegalStateException("Failed to create BitmapRegionDecoder")
-        return Point(currentDecoder.width, currentDecoder.height)
+        // openInputStream() and newInstance() are both documented as nullable on failure (e.g.
+        // the file was deleted or became unreadable between the gallery listing it and the
+        // user zooming into it) - surface that as a clean IOException instead of an NPE.
+        val inputStream = context.contentResolver.openInputStream(newUri)
+            ?: throw IOException("Unable to open input stream for $newUri")
+        val regionDecoder = inputStream.use { stream ->
+            BitmapRegionDecoder.newInstance(stream, false)
+        } ?: throw IOException("Unable to create a region decoder for $newUri")
+        decoder = regionDecoder
+        return Point(regionDecoder.width, regionDecoder.height)
     }
 
     override fun decodeRegion(rect: Rect, sampleSize: Int): Bitmap {
