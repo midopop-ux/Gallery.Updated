@@ -726,6 +726,16 @@ fun AppCompatActivity.fixDateTaken(
             showErrorToast(e)
         }
     }
+fun tweakTimestampByOneSecond(timestamp: Long): Long {
+    if (timestamp <= 0L) return timestamp
+    val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
+    val seconds = cal.get(Calendar.SECOND)
+    if (seconds >= 59) {
+        cal.add(Calendar.SECOND, -1)
+    } else {
+        cal.add(Calendar.SECOND, 1)
+    }
+    return cal.timeInMillis
 }
 
 fun AppCompatActivity.updateDateTimeForPaths(

@@ -257,7 +257,11 @@ class PhotoFragment : ViewPagerFragment() {
         }
 
         if (mWasInit) {
-            if (config.allowZoomingImages != mStoredAllowDeepZoomableImages || config.showHighestQuality != mStoredShowHighestQuality) {
+            if (Medium.isEdited(mMedium.path)) {
+                mIsSubsamplingVisible = false
+                binding.subsamplingView.beGone()
+                loadImage()
+            } else if (config.allowZoomingImages != mStoredAllowDeepZoomableImages || config.showHighestQuality != mStoredShowHighestQuality) {
                 mIsSubsamplingVisible = false
                 binding.subsamplingView.beGone()
                 loadImage()
@@ -491,17 +495,20 @@ class PhotoFragment : ViewPagerFragment() {
             return
         }
 
+        val isEdited = Medium.isEdited(path) || Medium.isEdited(mMedium.path)
         val priority = if (mIsFragmentVisible) Priority.IMMEDIATE else Priority.NORMAL
         val options = RequestOptions()
             .signature(mMedium.getKey())
             .format(DecodeFormat.PREFER_ARGB_8888)
             .priority(priority)
-            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+            .diskCacheStrategy(if (isEdited) DiskCacheStrategy.NONE else DiskCacheStrategy.RESOURCE)
+            .skipMemoryCache(isEdited)
             .fitCenter()
             .run {
                 if (mCurrentRotationDegrees != 0) {
                     transform(Rotate(mCurrentRotationDegrees))
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .skipMemoryCache(true)
                 } else {
                     this
                 }

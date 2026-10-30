@@ -49,6 +49,21 @@ data class Medium(
         // cheap constructor (locale/timezone lookups). One per thread, since groupMedia() runs
         // its grouping loop on a single background thread at a time, never concurrently.
         private val dayStartCalendar = ThreadLocal.withInitial { Calendar.getInstance(Locale.ENGLISH) }
+
+        val invalidatedPaths = HashSet<String>()
+        val editedVersions = HashMap<String, Long>()
+
+        fun markEdited(path: String) {
+            invalidatedPaths.add(path)
+            editedVersions[path] = System.currentTimeMillis()
+        }
+
+        fun invalidatePath(path: String) {
+            markEdited(path)
+        }
+
+        fun isPathInvalidated(path: String): Boolean = invalidatedPaths.contains(path)
+        fun isEdited(path: String): Boolean = isPathInvalidated(path)
     }
 
     fun isWebP() = name.isWebP()
@@ -126,7 +141,14 @@ data class Medium(
             File(path).lastModified()
         }
 
-        return "$path-$lastModified-$size"
+        val actualSize = try {
+            File(path).length().takeIf { it > 0L } ?: size
+        } catch (_: Exception) {
+            size
+        }
+
+        val editVersion = editedVersions[path] ?: 0L
+        return "$path-$lastModified-$actualSize-$editVersion"
     }
 
     fun getKey() = ObjectKey(getSignature())

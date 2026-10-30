@@ -837,11 +837,12 @@ fun Context.loadImageBase(
         else -> Priority.NORMAL
     }
 
+    val isEdited = com.goodwy.gallery.models.Medium.isEdited(path)
     val options = RequestOptions()
         .signature(signature)
-        .skipMemoryCache(skipMemoryCacheAtPaths?.contains(path) == true)
+        .skipMemoryCache(isEdited || skipMemoryCacheAtPaths?.contains(path) == true)
         .priority(priority)
-        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+        .diskCacheStrategy(if (isEdited) DiskCacheStrategy.NONE else DiskCacheStrategy.RESOURCE)
         .format(DecodeFormat.PREFER_ARGB_8888)
 
     if (thumbnailSize > 0) {
@@ -927,11 +928,12 @@ fun Context.preloadImageBase(
     skipMemoryCache: Boolean = false,
     thumbnailSize: Int = 0,
 ): Target<Drawable> {
+    val isEdited = com.goodwy.gallery.models.Medium.isEdited(path)
     val options = RequestOptions()
         .signature(signature)
-        .skipMemoryCache(skipMemoryCache)
+        .skipMemoryCache(isEdited || skipMemoryCache)
         .priority(if (highPriority) Priority.HIGH else Priority.NORMAL)
-        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+        .diskCacheStrategy(if (isEdited) DiskCacheStrategy.NONE else DiskCacheStrategy.RESOURCE)
         .format(DecodeFormat.PREFER_ARGB_8888)
         .dontAnimate()
         .decode(Bitmap::class.java)

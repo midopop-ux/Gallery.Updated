@@ -959,6 +959,9 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             oldDateTaken = oldLastModified
         }
 
+        val targetLastModified = if (oldLastModified > 0L) tweakTimestampByOneSecond(oldLastModified) else 0L
+        val targetDateTaken = if (oldDateTaken > 0L) tweakTimestampByOneSecond(oldDateTaken) else targetLastModified
+
         toast(com.goodwy.commons.R.string.saving)
         ensureBackgroundThread {
             try {
@@ -982,23 +985,26 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 }
             }
 
-            try {
-                oldFile.setLastModified(oldLastModified)
-            } catch (_: Exception) {}
+            if (targetLastModified > 0L) {
+                try {
+                    oldFile.setLastModified(targetLastModified)
+                } catch (_: Exception) {}
+            }
 
             runOnUiThread {
                 updateDateTimeForPaths(
                     paths = arrayListOf(oldPath),
-                    updateDateTaken = oldDateTaken > 0L,
-                    newDateTaken = oldDateTaken,
-                    updateLastModified = oldLastModified > 0L,
-                    newLastModified = oldLastModified
+                    updateDateTaken = targetDateTaken > 0L,
+                    newDateTaken = targetDateTaken,
+                    updateLastModified = targetLastModified > 0L,
+                    newLastModified = targetLastModified
                 ) {
+                    Medium.markEdited(oldPath)
                     ensureBackgroundThread {
                         try {
                             newFile.delete()
                             mediaDB.deleteMediumPath(newPath)
-                            mediaDB.updateMediumModifiedAndSize(oldPath, oldLastModified, oldFile.length())
+                            mediaDB.updateMediumModifiedAndSize(oldPath, targetLastModified, oldFile.length())
                         } catch (_: Exception) {}
 
                         runOnUiThread {
@@ -1009,6 +1015,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
                         applicationContext.rescanPaths(arrayListOf(newPath, oldPath)) {
                             runOnUiThread {
+                                Medium.markEdited(oldPath)
                                 toast(R.string.replaced_old_successfully)
                                 mPos = -1
                                 mPath = oldPath

@@ -54,6 +54,8 @@ import com.goodwy.gallery.extensions.fixDateTaken
 import com.goodwy.gallery.extensions.mediaDB
 import com.goodwy.gallery.extensions.openEditor
 import com.goodwy.gallery.extensions.updateDateTimeForPaths
+import com.goodwy.gallery.extensions.tweakTimestampByOneSecond
+import com.goodwy.gallery.models.Medium
 import com.goodwy.gallery.helpers.*
 import com.goodwy.gallery.interfaces.CanvasListener
 import com.goodwy.gallery.models.FilterItem
@@ -1207,7 +1209,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
         val isOverwritingOriginal = (file.absolutePath == originalFilePath) || overwriteRequested
         fun proceedFinalize() {
-            AppLogger.recordAction("saveBitmapToFile: finalizeEditedMedia for ${file.absolutePath}")
+            Medium.markEdited(file.absolutePath)
             finalizeEditedMedia(arrayListOf(file.absolutePath), intent) {
                 runOnUiThread {
                     try {
@@ -1219,20 +1221,23 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         }
 
         if (isOverwritingOriginal && (originalLastModified > 0L || originalDateTaken > 0L)) {
-            AppLogger.recordAction("saveBitmapToFile: overwriting original, preserving timestamps (dateTaken=$originalDateTaken, lastModified=$originalLastModified)")
-            if (originalLastModified > 0L) {
+            val targetLastModified = if (originalLastModified > 0L) tweakTimestampByOneSecond(originalLastModified) else 0L
+            val targetDateTaken = if (originalDateTaken > 0L) tweakTimestampByOneSecond(originalDateTaken) else targetLastModified
+
+            if (targetLastModified > 0L) {
                 try {
-                    file.setLastModified(originalLastModified)
+                    file.setLastModified(targetLastModified)
                 } catch (_: Exception) {}
             }
             runOnUiThread {
                 updateDateTimeForPaths(
                     paths = arrayListOf(file.absolutePath),
-                    updateDateTaken = originalDateTaken > 0L,
-                    newDateTaken = originalDateTaken,
-                    updateLastModified = originalLastModified > 0L,
-                    newLastModified = originalLastModified
+                    updateDateTaken = targetDateTaken > 0L,
+                    newDateTaken = targetDateTaken,
+                    updateLastModified = targetLastModified > 0L,
+                    newLastModified = targetLastModified
                 ) {
+                    Medium.markEdited(file.absolutePath)
                     proceedFinalize()
                 }
             }
