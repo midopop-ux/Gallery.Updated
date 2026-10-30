@@ -16,7 +16,10 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 val properties = Properties().apply {
-    load(rootProject.file("local.properties").reader())
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        load(localPropertiesFile.reader())
+    }
 }
 
 fun hasSigningVars(): Boolean {
