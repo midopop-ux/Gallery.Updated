@@ -1343,7 +1343,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 }
 
                 mIgnoredPaths.add(fileDirItem.path)
-                val media = mMediaFiles.filter { !mIgnoredPaths.contains(it.path) } as ArrayList<Medium>
+                val media = ArrayList(mMediaFiles.filter { !mIgnoredPaths.contains(it.path) })
                 if (media.isNotEmpty()) {
                     runOnUiThread {
                         refreshUI(media, false)
@@ -1380,7 +1380,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             }
 
             mIgnoredPaths.add(fileDirItem.path)
-            val media = mMediaFiles.filter { !mIgnoredPaths.contains(it.path) } as ArrayList<Medium>
+            val media = ArrayList(mMediaFiles.filter { !mIgnoredPaths.contains(it.path) })
             if (media.isNotEmpty()) {
                 runOnUiThread {
                     refreshUI(media, false)
@@ -1450,9 +1450,11 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     @OptIn(UnstableApi::class)
     private fun gotMedia(thumbnailItems: ArrayList<ThumbnailItem>, ignorePlayingVideos: Boolean = false, refetchViewPagerPosition: Boolean = false) {
-        val media = thumbnailItems.asSequence().filter {
-            it is Medium && !mIgnoredPaths.contains(it.path)
-        }.map { it as Medium }.toMutableList() as ArrayList<Medium>
+        val media = ArrayList(
+            thumbnailItems.asSequence().filter {
+                it is Medium && !mIgnoredPaths.contains(it.path)
+            }.map { it as Medium }.toList()
+        )
 
         if (isDirEmpty(media) || media.hashCode() == mPrevHashcode) {
             return

@@ -1067,7 +1067,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             getPathFromUri(currentUri)?.getParentPath()?.let(folders::add)
         }
 
-        return folders.filter { it.isNotEmpty() } as ArrayList<String>
+        return ArrayList(folders.filter { it.isNotEmpty() })
     }
 
     private fun finalizeEditedMedia(
@@ -1075,9 +1075,11 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         resultIntent: Intent,
         completion: () -> Unit,
     ) {
-        val pathsToScan = savedPaths.map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct() as ArrayList<String>
+        val pathsToScan = ArrayList(
+            savedPaths.map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+        )
         val foldersToResync = getFoldersToResync(pathsToScan)
 
         val completeOnUi = {
