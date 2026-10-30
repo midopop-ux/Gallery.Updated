@@ -1,0 +1,67 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build FOSS APK
+        run: ./gradlew assembleFossRelease || ./gradlew assembleFossDebug || ./gradlew assembleRelease || ./gradlew assembleDebug
+
+      - name: Find APKs
+        id: find_apks
+        run: |
+          mkdir -p output_apks
+          find app/build/outputs/apk/ -name "*.apk" -exec cp {} output_apks/ \;
+          ls -la output_apks/
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gallery-APKs
+          path: output_apks/*.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/unified-gallery'
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Gallery Release ${{ github.ref_name }}
+          body: |
+            Automated build with:
+            - Merged PR #36 (Thumbnail cache controls & optimization)
+            - Merged PR #46 (8.4.0 Optimization cocktail, bug fixes)
+            - Merged PR #47 (Memory leaks & null safety fixes)
+            - New Feature: Edit Date Taken (EXIF) and File Last Modified timestamp
+          files: output_apks/*.apk
+          draft: false
+          prerelease: false
