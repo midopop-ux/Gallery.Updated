@@ -1154,7 +1154,6 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             }
             binding.mediaFastscroller.beVisibleIf(binding.mediaEmptyTextPlaceholder.isGone())
             setupAdapter()
-
             if (!mHasRestoredScrollPosition && media.isNotEmpty() && LastFolderSession.path == mPath) {
                 mHasRestoredScrollPosition = true
                 val position = LastFolderSession.scrollPosition.coerceIn(0, media.lastIndex)

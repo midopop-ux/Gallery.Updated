@@ -637,7 +637,6 @@ class MediaAdapter(
     fun updateMedia(newMedia: ArrayList<ThumbnailItem>) {
         val thumbnailItems = newMedia.clone() as ArrayList<ThumbnailItem>
         clearPrefetchRequests()
-
         // hashCode() over the whole list and DiffUtil.calculateDiff() are both O(n)-or-worse
         // CPU work; for large libraries that's enough to drop frames if run inline on the main
         // thread, so compute them on a background dispatcher and only touch adapter state

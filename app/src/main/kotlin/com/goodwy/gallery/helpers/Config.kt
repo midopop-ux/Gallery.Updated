@@ -496,6 +496,10 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getLong(LAST_MEDIA_DB_MAINTENANCE, 0L)
         set(lastMaintenance) = prefs.edit().putLong(LAST_MEDIA_DB_MAINTENANCE, lastMaintenance).apply()
 
+    var lastMediaDbMaintenance: Long
+        get() = prefs.getLong(LAST_MEDIA_DB_MAINTENANCE, 0L)
+        set(lastMaintenance) = prefs.edit().putLong(LAST_MEDIA_DB_MAINTENANCE, lastMaintenance).apply()
+
     var showHighestQuality: Boolean
         get() = prefs.getBoolean(SHOW_HIGHEST_QUALITY, false)
         set(showHighestQuality) = prefs.edit { putBoolean(SHOW_HIGHEST_QUALITY, showHighestQuality) }

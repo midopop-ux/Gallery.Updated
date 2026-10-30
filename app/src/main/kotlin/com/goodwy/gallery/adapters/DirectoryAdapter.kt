@@ -805,7 +805,6 @@ class DirectoryAdapter(
 
     fun updateDirs(newDirs: ArrayList<Directory>) {
         val directories = newDirs.clone() as ArrayList<Directory>
-
         // hashCode() over the whole list and DiffUtil.calculateDiff() are both CPU work;
         // run them off the main thread and only touch adapter state once back on it, same
         // as MediaAdapter.updateMedia(). Cancel any in-flight update first so a fast-changing
