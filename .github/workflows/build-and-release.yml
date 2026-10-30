@@ -31,21 +31,32 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build FOSS APK
+      - name: Build FOSS Release APK (with R8 Proguard optimizations)
         run: |
-          ./gradlew assembleFossDebug
+          ./gradlew assembleFossRelease
 
-      - name: Find APKs
-        id: find_apks
+      - name: Sign Release APK with Android Debug Keystore
         run: |
+          # Use Android build-tools apksigner to sign the release APK so it installs directly on Android
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          echo "Using Build Tools at $BUILD_TOOLS_DIR"
+          
+          # Generate a standard signing keystore
+          keytool -genkey -v -keystore release-key.jks -alias gallery -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Gallery, OU=Android, O=Goodwy, L=Unknown, S=Unknown, C=US"
+          
           mkdir -p output_apks
-          find app/build/outputs/apk/ -name "*.apk" -exec cp {} output_apks/ \;
+          for unsigned_apk in $(find app/build/outputs/apk/ -name "*unsigned.apk"); do
+            signed_apk="output_apks/$(basename "$unsigned_apk" -unsigned.apk)-signed.apk"
+            echo "Signing $unsigned_apk -> $signed_apk"
+            $BUILD_TOOLS_DIR/apksigner sign --ks release-key.jks --ks-pass pass:android --ks-key-alias gallery --key-pass pass:android --out "$signed_apk" "$unsigned_apk"
+          done
+          
           ls -la output_apks/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Gallery-APKs
+          name: Gallery-Release-APK
           path: output_apks/*.apk
 
       - name: Create Release
@@ -55,7 +66,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Gallery Release ${{ github.ref_name }}
           body: |
-            Automated build with:
+            Optimized Release APK with:
+            - Minified & Optimized with R8 Proguard
             - Merged PR #36 (Thumbnail cache controls & optimization)
             - Merged PR #46 (8.4.0 Optimization cocktail, bug fixes)
             - Merged PR #47 (Memory leaks & null safety fixes)
