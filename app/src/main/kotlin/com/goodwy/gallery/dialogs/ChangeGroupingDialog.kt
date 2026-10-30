@@ -2,6 +2,7 @@ package com.goodwy.gallery.dialogs
 
 import android.content.DialogInterface
 import com.goodwy.commons.activities.BaseSimpleActivity
+import com.goodwy.commons.extensions.beGone
 import com.goodwy.commons.extensions.beVisibleIf
 import com.goodwy.commons.extensions.getAlertDialogBuilder
 import com.goodwy.commons.extensions.setupDialogStuff
