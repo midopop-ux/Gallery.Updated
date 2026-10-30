@@ -285,6 +285,7 @@
     <string name="invalid_date_format">صيغة التاريخ/الوقت غير صالحة. يرجى استخدام YYYY-MM-DD HH:MM:SS</string>
     <string name="replace_old">استبدال نسخة قديمة</string>
     <string name="replace_old_confirmation">هل تريد استبدال النسخة القديمة \"%s\" بهذه الصورة المعدلة؟ ستأخذ مكانها بنفس الاسم والموقع والـ EXIF والتاريخ، وسيتم حذف هذه النسخة.</string>
+    <string name="replaced_old_successfully">تم استبدال النسخة القديمة بنجاح</string>
     <string name="date_deleted">تاريخ الحذف</string>
     <string name="migrate_recycle_bin_prompt">تم العثور على ملفات في سلة المحذوفات القديمة. هل تريد نقلها إلى المجلد الجديد في DCIM/Goodwy Gallery/.recycle_bin؟</string>
     <string name="migrated_recycle_bin_successfully">تم نقل عناصر سلة المحذوفات بنجاح</string>

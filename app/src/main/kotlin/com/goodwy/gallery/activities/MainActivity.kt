@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.SystemClock
 import android.provider.MediaStore
@@ -1774,7 +1775,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                             System.currentTimeMillis() - MONTH_MILLISECONDS
                         )
                         filesToDelete.forEach {
-                            if (File(it.path.replaceFirst(RECYCLE_BIN, recycleBinPath)).delete()) {
+                            if (File(it.path.replaceFirst(RECYCLE_BIN, galleryRecycleBinPath)).delete()) {
                                 mediaDB.deleteMediumPath(it.path)
                             }
                         }

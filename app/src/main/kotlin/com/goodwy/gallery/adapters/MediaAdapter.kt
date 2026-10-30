@@ -171,7 +171,7 @@ class MediaAdapter(
             findItem(R.id.cab_set_as).isVisible = isOneItemSelected
             findItem(R.id.cab_resize).isVisible = canResize(selectedItems)
             findItem(R.id.cab_confirm_selection).isVisible = isAGetIntent && allowMultiplePicks && selectedKeys.isNotEmpty()
-            findItem(R.id.cab_restore_recycle_bin_files).isVisible = selectedPaths.all { it.startsWith(activity.recycleBinPath) }
+            findItem(R.id.cab_restore_recycle_bin_files).isVisible = selectedPaths.all { it.startsWith(activity.galleryRecycleBinPath) }
             findItem(R.id.cab_create_shortcut).isVisible = isOneItemSelected
 
             checkHideBtnVisibility(this, selectedItems)
@@ -469,12 +469,12 @@ class MediaAdapter(
     private fun copyMoveTo(isCopyOperation: Boolean) {
         val paths = getSelectedPaths()
 
-        val recycleBinPath = activity.recycleBinPath
-        val fileDirItems = paths.asSequence().filter { isCopyOperation || !it.startsWith(recycleBinPath) }.map {
+        val galleryRecycleBinPath = activity.galleryRecycleBinPath
+        val fileDirItems = paths.asSequence().filter { isCopyOperation || !it.startsWith(galleryRecycleBinPath) }.map {
             FileDirItem(it, it.getFilenameFromPath())
         }.toMutableList() as ArrayList
 
-        if (!isCopyOperation && paths.any { it.startsWith(recycleBinPath) }) {
+        if (!isCopyOperation && paths.any { it.startsWith(galleryRecycleBinPath) }) {
             activity.toast(com.goodwy.commons.R.string.moving_recycle_bin_items_disabled, Toast.LENGTH_LONG)
         }
 
@@ -598,7 +598,7 @@ class MediaAdapter(
             "$deleteItemsString ($fileSize)"
         }
 
-        val isRecycleBin = firstPath.startsWith(activity.recycleBinPath)
+        val isRecycleBin = firstPath.startsWith(activity.galleryRecycleBinPath)
         val baseString =
             if (config.useRecycleBin && !config.tempSkipRecycleBin && !isRecycleBin) com.goodwy.commons.R.string.move_to_recycle_bin_confirmation else com.goodwy.commons.R.string.deletion_confirmation
         val question = String.format(resources.getString(baseString), itemsAndSize)

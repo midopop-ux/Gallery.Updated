@@ -70,20 +70,3 @@ jobs:
         with:
           name: Gallery-${{ github.ref_name }}-APK
           path: output_apks/*.apk
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/unified-gallery' || github.ref == 'refs/heads/test'
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Gallery ${{ github.ref_name == 'test' && 'Debug Diagnostics Build' || 'Release' }} (${{ github.ref_name }})
-          body: |
-            ### Gallery APK Build (${{ github.ref_name }})
-            - **Variant**: ${{ github.ref_name == 'test' && 'Debug (FOSS) with full line numbers and debuggable mode' || 'Release (FOSS) optimized with R8/Proguard' }}
-            - **In-App Crash Reporter**: Integrated `CrashHandler` and `AppLogger` breadcrumbs tracker
-            - **Dedicated Crash Process**: Crash screen runs in isolated `:crash` process with one-click Copy / Share report
-            - **Native Gallery Picker**: 'Replace Old' uses native chronological Gallery grid instead of folder file-tree
-            - **Timestamp Preservation**: Automatically maintains `Date Taken` (EXIF) and `Last Modified` on overwrite
-          files: output_apks/*.apk
-          draft: false
-          prerelease: ${{ github.ref_name == 'test' }}

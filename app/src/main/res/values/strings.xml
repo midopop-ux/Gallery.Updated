@@ -311,6 +311,7 @@
     <string name="invalid_date_format">Invalid date/time format. Please use YYYY-MM-DD HH:MM:SS</string>
     <string name="replace_old">Replace old</string>
     <string name="replace_old_confirmation">Replace \"%s\" with this edited image? It will take its name, location, EXIF, and timestamp, and this copy will be deleted.</string>
+    <string name="replaced_old_successfully">Old version replaced successfully</string>
     <string name="date_deleted">Date deleted</string>
     <string name="migrate_recycle_bin_prompt">Files were found in the old Recycle Bin location. Would you like to move them to the new folder in DCIM/Goodwy Gallery/.recycle_bin?</string>
     <string name="migrated_recycle_bin_successfully">Recycle Bin items moved successfully</string>

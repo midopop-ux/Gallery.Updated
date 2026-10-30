@@ -101,7 +101,7 @@ private fun Context.runMediaDbMaintenance(maxDurationMs: Long = MEDIA_DB_MAINTEN
             val staleCandidates = candidates.filter { candidate ->
                 val dbPath = candidate.path
                 val pathToCheck = if (candidate.deletedTS != 0L && dbPath.startsWith(RECYCLE_BIN)) {
-                    File(recycleBinPath, dbPath.removePrefix(RECYCLE_BIN)).toString()
+                    File(galleryRecycleBinPath, dbPath.removePrefix(RECYCLE_BIN)).toString()
                 } else {
                     dbPath
                 }
@@ -173,7 +173,7 @@ val Context.recycleBin: File
         return dir
     }
 
-val Context.recycleBinPath: String get() = recycleBin.absolutePath
+val Context.galleryRecycleBinPath: String get() = recycleBin.absolutePath
 
 fun Context.movePinnedDirectoriesToFront(dirs: ArrayList<Directory>): ArrayList<Directory> {
     val foundFolders = ArrayList<Directory>()
@@ -1265,7 +1265,7 @@ fun Context.getCachedMedia(
             // creating a new thread intentionally, do not reuse the common background thread
             Thread {
                 media.filter { !getDoesFilePathExist(it.path, OTGPath) }.forEach {
-                    if (it.path.startsWith(recycleBinPath)) {
+                    if (it.path.startsWith(galleryRecycleBinPath)) {
                         deleteDBPath(it.path)
                     } else {
                         mediaToDelete.add(it)
@@ -1386,13 +1386,13 @@ fun Context.getUpdatedDeletedMedia(): ArrayList<Medium> {
     }
 
     media.forEach {
-        it.path = File(recycleBinPath, it.path.removePrefix(RECYCLE_BIN)).toString()
+        it.path = File(galleryRecycleBinPath, it.path.removePrefix(RECYCLE_BIN)).toString()
     }
     return media
 }
 
 fun Context.deleteDBPath(path: String) {
-    deleteMediumWithPath(path.replaceFirst(recycleBinPath, RECYCLE_BIN))
+    deleteMediumWithPath(path.replaceFirst(galleryRecycleBinPath, RECYCLE_BIN))
 }
 
 fun Context.deleteMediumWithPath(path: String) {

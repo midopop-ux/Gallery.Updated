@@ -316,7 +316,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
             return
         }
 
-        if (config.useRecycleBin && !skipRecycleBin && !filtered.first().path.startsWith(recycleBinPath)) {
+        if (config.useRecycleBin && !skipRecycleBin && !filtered.first().path.startsWith(galleryRecycleBinPath)) {
             val movingItems = resources.getQuantityString(com.goodwy.commons.R.plurals.moving_items_into_bin, filtered.size, filtered.size)
             toast(movingItems)
 
@@ -346,7 +346,7 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
             ensureBackgroundThread {
                 val useRecycleBin = config.useRecycleBin
                 filtered.forEach {
-                    if (it.path.startsWith(recycleBinPath) || !useRecycleBin) {
+                    if (it.path.startsWith(galleryRecycleBinPath) || !useRecycleBin) {
                         deleteDBPath(it.path)
                     }
                 }

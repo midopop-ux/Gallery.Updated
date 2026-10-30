@@ -1033,7 +1033,7 @@ class SettingsActivity : SimpleActivity() {
                 mRecycleBinContentSize = mediaDB.getDeletedMedia().sumByLong { medium ->
                     val size = medium.size
                     if (size == 0L) {
-                        val path = medium.path.removePrefix(RECYCLE_BIN).prependIndent(recycleBinPath)
+                        val path = medium.path.removePrefix(RECYCLE_BIN).prependIndent(galleryRecycleBinPath)
                         File(path).length()
                     } else {
                         size

@@ -222,7 +222,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 findItem(R.id.menu_remove_from_favorites).isVisible =
                     currentMedium.isFavorite && visibleBottomActions and BOTTOM_ACTION_TOGGLE_FAVORITE == 0 && !currentMedium.getIsInRecycleBin()
 
-                findItem(R.id.menu_restore_file).isVisible = currentMedium.path.startsWith(recycleBinPath)
+                findItem(R.id.menu_restore_file).isVisible = currentMedium.path.startsWith(galleryRecycleBinPath)
                 findItem(R.id.menu_create_shortcut).isVisible = true
                 findItem(R.id.menu_replace_old).isVisible = currentMedium.isImage() && !currentMedium.getIsInRecycleBin()
                 findItem(R.id.menu_change_orientation).isVisible = rotationDegrees == 0 && visibleBottomActions and BOTTOM_ACTION_CHANGE_ORIENTATION == 0
@@ -347,7 +347,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 mPath = savedPath.ifEmpty { intent.getStringExtra(PATH).orEmpty() }
 
                 // make sure "Open Recycle Bin" works well with "Show all folders content"
-                mShowAll = config.showAll && (mPath.isNotEmpty() && !mPath.startsWith(recycleBinPath))
+                mShowAll = config.showAll && (mPath.isNotEmpty() && !mPath.startsWith(galleryRecycleBinPath))
             } catch (e: Exception) {
                 showErrorToast(e)
                 finish()
@@ -708,7 +708,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
     private fun copyMoveTo(isCopyOperation: Boolean) {
         val currPath = getCurrentPath()
-        if (!isCopyOperation && currPath.startsWith(recycleBinPath)) {
+        if (!isCopyOperation && currPath.startsWith(galleryRecycleBinPath)) {
             toast(com.goodwy.commons.R.string.moving_recycle_bin_items_disabled, Toast.LENGTH_LONG)
             return
         }

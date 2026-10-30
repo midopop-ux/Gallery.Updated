@@ -1,6 +1,7 @@
 package com.goodwy.gallery.extensions
 
 import android.app.Activity
+import android.content.Context
 import android.content.ContentProviderOperation
 import android.content.ContentValues
 import android.content.Intent
@@ -392,7 +393,7 @@ fun BaseSimpleActivity.movePathsInRecycleBin(paths: ArrayList<String>, callback:
                 var inputStream: InputStream? = null
                 var out: OutputStream? = null
                 try {
-                    val destination = "$recycleBinPath/$source"
+                    val destination = "$galleryRecycleBinPath/$source"
                     val fileDocument = getSomeDocumentFile(source)
                     inputStream = applicationContext.contentResolver.openInputStream(fileDocument?.uri!!)
                     out = getFileOutputStreamSync(destination, source.getMimeType())
@@ -421,7 +422,7 @@ fun BaseSimpleActivity.movePathsInRecycleBin(paths: ArrayList<String>, callback:
                 }
             } else {
                 val file = File(source)
-                val internalFile = File(recycleBinPath, source)
+                val internalFile = File(galleryRecycleBinPath, source)
                 val lastModified = file.lastModified()
                 try {
                     if (file.copyRecursively(internalFile, true)) {
@@ -451,7 +452,7 @@ fun BaseSimpleActivity.restoreRecycleBinPaths(paths: ArrayList<String>, callback
         val newPaths = ArrayList<String>()
         var shownRestoringToPictures = false
         for (source in paths) {
-            var destination = source.removePrefix(recycleBinPath)
+            var destination = source.removePrefix(galleryRecycleBinPath)
 
             val destinationParent = destination.getParentPath()
             if (isRestrictedWithSAFSdk30(destinationParent) && !isInDownloadDir(destinationParent)) {
@@ -499,7 +500,7 @@ fun BaseSimpleActivity.restoreRecycleBinPaths(paths: ArrayList<String>, callback
                 out?.flush()
 
                 if (File(source).length() == copiedSize) {
-                    mediaDB.updateDeleted(destination.removePrefix(recycleBinPath), 0, "$RECYCLE_BIN${source.removePrefix(recycleBinPath)}")
+                    mediaDB.updateDeleted(destination.removePrefix(galleryRecycleBinPath), 0, "$RECYCLE_BIN${source.removePrefix(galleryRecycleBinPath)}")
                 }
                 newPaths.add(destination)
 
@@ -746,7 +747,7 @@ fun Context.backupToRecycleBin(sourcePath: String) {
         val srcFile = File(sourcePath)
         if (!srcFile.exists()) return
 
-        val internalFile = File(recycleBinPath, sourcePath)
+        val internalFile = File(galleryRecycleBinPath, sourcePath)
         val lastModified = srcFile.lastModified()
         if (srcFile.copyRecursively(internalFile, true)) {
             val now = System.currentTimeMillis()
@@ -890,7 +891,7 @@ fun BaseSimpleActivity.saveRotatedImageToFile(oldPath: String, newPath: String, 
         }
     }
 
-    val tmpPath = "$recycleBinPath/.tmp_${newPath.getFilenameFromPath()}"
+    val tmpPath = "$galleryRecycleBinPath/.tmp_${newPath.getFilenameFromPath()}"
     val tmpFileDirItem = FileDirItem(tmpPath, tmpPath.getFilenameFromPath())
     try {
         getFileOutputStream(tmpFileDirItem) {
