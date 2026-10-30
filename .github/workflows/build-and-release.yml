@@ -28,14 +28,12 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build FOSS APK
-        run: ./gradlew assembleFossRelease || ./gradlew assembleFossDebug || ./gradlew assembleRelease || ./gradlew assembleDebug
+        run: |
+          ./gradlew assembleFossRelease || ./gradlew assembleFossDebug || ./gradlew assembleRelease || ./gradlew assembleDebug
 
       - name: Find APKs
         id: find_apks
