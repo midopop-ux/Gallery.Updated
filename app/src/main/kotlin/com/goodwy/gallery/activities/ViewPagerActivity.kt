@@ -66,6 +66,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Locale
 import kotlin.math.min
 
 @Suppress("UNCHECKED_CAST")
@@ -220,6 +223,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
                 findItem(R.id.menu_restore_file).isVisible = currentMedium.path.startsWith(recycleBinPath)
                 findItem(R.id.menu_create_shortcut).isVisible = true
+                findItem(R.id.menu_replace_old).isVisible = currentMedium.isImage() && !currentMedium.getIsInRecycleBin()
                 findItem(R.id.menu_change_orientation).isVisible = rotationDegrees == 0 && visibleBottomActions and BOTTOM_ACTION_CHANGE_ORIENTATION == 0
                 findItem(R.id.menu_rotate).setShowAsAction(
                     if (rotationDegrees != 0) {
@@ -269,6 +273,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                 R.id.menu_edit -> openEditor(getCurrentPath())
                 R.id.menu_properties -> showProperties()
                 R.id.menu_change_date_time -> changeDateTime()
+                R.id.menu_replace_old -> replaceOldFile()
                 R.id.menu_show_on_map -> showFileOnMap(getCurrentPath())
                 R.id.menu_rotate_right -> rotateImage(90)
                 R.id.menu_rotate_left -> rotateImage(-90)
@@ -871,6 +876,129 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                         }
                         if (updateLastModified) {
                             currentMedium.modified = newLastModified
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun replaceOldFile() {
+        val newPath = getCurrentPath()
+        val currentFolder = newPath.getParentPath()
+
+        com.goodwy.commons.dialogs.FilePickerDialog(
+            activity = this,
+            currPath = currentFolder,
+            pickFile = true,
+            showHidden = config.shouldShowHidden,
+            showFAB = false,
+            canAddShowHiddenButton = false
+        ) { oldPath ->
+            if (oldPath == newPath) {
+                toast(R.string.cannot_replace_same_file)
+                return@FilePickerDialog
+            }
+
+            val oldFile = File(oldPath)
+            if (!oldFile.exists() || !oldPath.isImageFast()) {
+                toast(com.goodwy.commons.R.string.invalid_file_format)
+                return@FilePickerDialog
+            }
+
+            val confirmationMessage = String.format(
+                getString(R.string.replace_old_confirmation),
+                oldPath.getFilenameFromPath()
+            )
+
+            com.goodwy.commons.dialogs.ConfirmationDialog(
+                activity = this,
+                message = confirmationMessage,
+                positive = com.goodwy.commons.R.string.yes,
+                negative = com.goodwy.commons.R.string.no
+            ) {
+                ensureWritablePath(targetPath = oldPath, confirmOverwrite = false) {
+                    performReplaceOld(newPath = newPath, oldPath = oldPath)
+                }
+            }
+        }
+    }
+
+    private fun performReplaceOld(newPath: String, oldPath: String) {
+        val oldFile = File(oldPath)
+        val newFile = File(newPath)
+        val oldLastModified = oldFile.lastModified()
+        var oldDateTaken = 0L
+
+        try {
+            val oldExif = ExifInterface(oldPath)
+            val dateString = oldExif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+                ?: oldExif.getAttribute(ExifInterface.TAG_DATETIME)
+            if (dateString != null) {
+                val format = SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.ENGLISH)
+                oldDateTaken = format.parse(dateString)?.time ?: 0L
+            }
+        } catch (_: Exception) {}
+
+        if (oldDateTaken == 0L) {
+            oldDateTaken = oldLastModified
+        }
+
+        toast(com.goodwy.commons.R.string.saving)
+        ensureBackgroundThread {
+            try {
+                newFile.inputStream().use { input ->
+                    FileOutputStream(oldFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            } catch (_: Exception) {
+                val fileDirItem = FileDirItem(oldPath, oldPath.getFilenameFromPath())
+                getFileOutputStream(fileDirItem, true) { outStream ->
+                    if (outStream != null) {
+                        try {
+                            outStream.use { out ->
+                                newFile.inputStream().use { inp ->
+                                    inp.copyTo(out)
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+
+            try {
+                oldFile.setLastModified(oldLastModified)
+            } catch (_: Exception) {}
+
+            runOnUiThread {
+                updateDateTimeForPaths(
+                    paths = arrayListOf(oldPath),
+                    updateDateTaken = oldDateTaken > 0L,
+                    newDateTaken = oldDateTaken,
+                    updateLastModified = oldLastModified > 0L,
+                    newLastModified = oldLastModified
+                ) {
+                    ensureBackgroundThread {
+                        try {
+                            newFile.delete()
+                            mediaDB.deleteMediumPath(newPath)
+                            mediaDB.updateMediumModifiedAndSize(oldPath, oldLastModified, oldFile.length())
+                        } catch (_: Exception) {}
+
+                        runOnUiThread {
+                            try {
+                                Glide.get(applicationContext).clearMemory()
+                            } catch (_: Exception) {}
+                        }
+
+                        applicationContext.rescanPaths(arrayListOf(newPath, oldPath)) {
+                            runOnUiThread {
+                                toast(R.string.replaced_old_successfully)
+                                mPos = -1
+                                mPath = oldPath
+                                refreshViewPager()
+                            }
                         }
                     }
                 }

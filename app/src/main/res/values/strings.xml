@@ -309,4 +309,8 @@
     <string name="failed_to_update_date_time">Failed to update date and time</string>
     <string name="current_time">Current time</string>
     <string name="invalid_date_format">Invalid date/time format. Please use YYYY-MM-DD HH:MM:SS</string>
+    <string name="replace_old">Replace old</string>
+    <string name="replace_old_confirmation">Replace \"%s\" with this edited image? It will take its name, location, EXIF, and timestamp, and this copy will be deleted.</string>
+    <string name="replaced_old_successfully">Old version replaced successfully</string>
+    <string name="cannot_replace_same_file">Cannot replace the same file with itself</string>
 </resources>

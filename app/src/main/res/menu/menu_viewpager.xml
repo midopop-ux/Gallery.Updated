@@ -55,6 +55,10 @@
         android:title="@string/change_date_time"
         app:showAsAction="never" />
     <item
+        android:id="@+id/menu_replace_old"
+        android:title="@string/replace_old"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/menu_hide"
         android:icon="@drawable/ic_hide_vector"
         android:title="@string/hide"
