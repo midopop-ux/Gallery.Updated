@@ -33,7 +33,7 @@ jobs:
 
       - name: Build FOSS APK
         run: |
-          ./gradlew assembleFossRelease || ./gradlew assembleFossDebug || ./gradlew assembleRelease || ./gradlew assembleDebug
+          ./gradlew assembleFossDebug
 
       - name: Find APKs
         id: find_apks
