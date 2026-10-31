@@ -7,7 +7,7 @@ import com.goodwy.commons.helpers.*
 import com.goodwy.gallery.R
 import com.goodwy.gallery.databinding.DialogChangeSortingBinding
 import com.goodwy.gallery.extensions.config
-import com.goodwy.gallery.helpers.SHOW_ALL
+import com.goodwy.gallery.helpers.*
 
 class ChangeSortingDialog(
     val activity: BaseSimpleActivity,

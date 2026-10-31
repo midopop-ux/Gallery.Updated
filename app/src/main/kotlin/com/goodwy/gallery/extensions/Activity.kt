@@ -49,6 +49,7 @@ import com.goodwy.gallery.dialogs.ResizeWithPathDialog
 import com.goodwy.gallery.helpers.RECYCLE_BIN
 import com.goodwy.gallery.helpers.TEMP_FOLDER_NAME
 import com.goodwy.gallery.models.DateTaken
+import com.goodwy.gallery.models.Medium
 import com.squareup.picasso.Picasso
 import java.io.*
 import java.text.SimpleDateFormat
