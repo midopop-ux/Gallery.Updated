@@ -71,4 +71,13 @@
         android:paddingBottom="@dimen/activity_margin"
         android:text="@string/keep_aspect_ratio" />
 
+    <com.goodwy.commons.views.MyAppCompatCheckbox
+        android:id="@+id/stretch_image"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/keep_aspect_ratio"
+        android:checked="false"
+        android:paddingBottom="@dimen/activity_margin"
+        android:text="@string/stretch_image" />
+
 </RelativeLayout>

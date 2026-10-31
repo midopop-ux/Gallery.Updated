@@ -18,6 +18,7 @@ import androidx.core.graphics.scale
 import androidx.core.net.toUri
 import androidx.core.graphics.drawable.toDrawable
 import androidx.exifinterface.media.ExifInterface
+import kotlin.math.roundToInt
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -483,26 +484,36 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             return
         }
 
+        val finalBitmap = if (resizeWidth > 0 && resizeHeight > 0) {
+            try {
+                Bitmap.createScaledBitmap(bitmap, resizeWidth, resizeHeight, true)
+            } catch (e: Exception) {
+                bitmap
+            }
+        } else {
+            bitmap
+        }
+
         setOldExif()
 
         if (isSharingBitmap) {
             isSharingBitmap = false
-            shareBitmap(bitmap)
+            shareBitmap(finalBitmap)
             return
         }
 
         if (isCropIntent) {
             resolveUriScheme(
                 uri = saveUri,
-                onPath = { saveBitmapToPath(bitmap, it, true) },
+                onPath = { saveBitmapToPath(finalBitmap, it, true) },
                 onContentUri = {
-                    saveBitmapToContentUri(bitmap, it, showSavingToast = true, isCropCommit = true)
+                    saveBitmapToContentUri(finalBitmap, it, showSavingToast = true, isCropCommit = true)
                 }
             )
             return
         }
 
-        saveBitmap(overwriteRequested, bitmap, showSavingToast = true)
+        saveBitmap(overwriteRequested, finalBitmap, showSavingToast = true)
     }
 
     private fun getOriginalBitmap(): Bitmap {
@@ -985,10 +996,61 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             return
         }
 
-        ResizeDialog(this, point) {
-            resizeWidth = it.x
-            resizeHeight = it.y
+        ResizeDialog(
+            activity = this,
+            size = point,
+            onPreview = { newSize, _ ->
+                showResizePreview(newSize)
+            }
+        ) { newSize, _ ->
+            resizeWidth = newSize.x
+            resizeHeight = newSize.y
             cropImage()
+        }
+    }
+
+    private fun showResizePreview(newSize: Point) {
+        ensureBackgroundThread {
+            try {
+                val sourceBitmap = binding.cropImageView.getCroppedImage() ?: return@ensureBackgroundThread
+                val targetW = newSize.x
+                val targetH = newSize.y
+                val maxDim = 2048
+                val (previewW, previewH) = if (targetW > maxDim || targetH > maxDim) {
+                    if (targetW >= targetH) {
+                        val h = (maxDim * (targetH.toFloat() / targetW)).roundToInt().coerceAtLeast(1)
+                        Pair(maxDim, h)
+                    } else {
+                        val w = (maxDim * (targetW.toFloat() / targetH)).roundToInt().coerceAtLeast(1)
+                        Pair(w, maxDim)
+                    }
+                } else {
+                    Pair(targetW, targetH)
+                }
+
+                val previewBitmap = Bitmap.createScaledBitmap(sourceBitmap, previewW, previewH, true)
+
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    val imageView = ImageView(this).apply {
+                        adjustViewBounds = true
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        setImageBitmap(previewBitmap)
+                        val pad = resources.getDimensionPixelSize(com.goodwy.commons.R.dimen.activity_margin)
+                        setPadding(pad, pad, pad, pad)
+                    }
+
+                    getAlertDialogBuilder()
+                        .setTitle("${getString(R.string.preview)} (${newSize.x} × ${newSize.y})")
+                        .setView(imageView)
+                        .setPositiveButton(com.goodwy.commons.R.string.ok, null)
+                        .show()
+                }
+            } catch (_: OutOfMemoryError) {
+                runOnUiThread { toast(com.goodwy.commons.R.string.out_of_memory_error) }
+            } catch (e: Exception) {
+                runOnUiThread { toast("${getString(R.string.unknown_error_occurred)}: ${e.message}") }
+            }
         }
     }
 
@@ -1277,7 +1339,16 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                 }
 
                 val quality = if (isCropCommit) 100 else 90
-                bitmap.compress(getCompressionFormatFromUri(uri), quality, out)
+                val bitmapToSave = if (resizeWidth > 0 && resizeHeight > 0 && (bitmap.width != resizeWidth || bitmap.height != resizeHeight)) {
+                    try {
+                        Bitmap.createScaledBitmap(bitmap, resizeWidth, resizeHeight, true)
+                    } catch (_: Exception) {
+                        bitmap
+                    }
+                } else {
+                    bitmap
+                }
+                bitmapToSave.compress(getCompressionFormatFromUri(uri), quality, out)
                 out.flush()
                 writeExif(oldExif, uri)
 

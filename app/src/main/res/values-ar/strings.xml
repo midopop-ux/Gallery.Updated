@@ -288,4 +288,6 @@
     <string name="replaced_old_successfully">تم استبدال النسخة القديمة بنجاح</string>
     <string name="date_deleted">تاريخ الحذف</string>
     <string name="cannot_replace_same_file">لا يمكن استبدال الملف بنفسه</string>
+    <string name="preview">معاينة</string>
+    <string name="stretch_image">مط الصورة</string>
 </resources>

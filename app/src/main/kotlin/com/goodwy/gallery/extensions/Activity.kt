@@ -847,6 +847,10 @@ fun AppCompatActivity.updateDateTimeForPaths(
                     dateTakensToInsert.add(dateTakenEntry)
                 }
 
+                if (updateLastModified) {
+                    mediaDB.updateMediumModifiedAndSize(path, newLastModified, file.length())
+                }
+
                 didUpdateAny = true
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -867,6 +871,15 @@ fun AppCompatActivity.updateDateTimeForPaths(
         }
 
         rescanPaths(paths) {
+            if (updateLastModified) {
+                for (path in paths) {
+                    try {
+                        val f = File(path)
+                        f.setLastModified(newLastModified)
+                        mediaDB.updateMediumModifiedAndSize(path, newLastModified, f.length())
+                    } catch (_: Exception) {}
+                }
+            }
             runOnUiThread {
                 if (didUpdateAny) {
                     toast(R.string.date_time_updated_successfully)

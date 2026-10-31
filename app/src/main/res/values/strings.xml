@@ -314,4 +314,6 @@
     <string name="replaced_old_successfully">Old version replaced successfully</string>
     <string name="date_deleted">Date deleted</string>
     <string name="cannot_replace_same_file">Cannot replace the same file with itself</string>
+    <string name="preview">Preview</string>
+    <string name="stretch_image">Stretch image</string>
 </resources>
