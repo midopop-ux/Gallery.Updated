@@ -124,7 +124,8 @@ class ChangeSortingDialog(
             else -> SORT_BY_DATE_TAKEN
         }
 
-        if (binding.sortingDialogRadioOrder.checkedRadioButtonId == R.id.sorting_dialog_radio_descending) {
+        val isDescending = binding.sortingDialogRadioOrder.checkedRadioButtonId == R.id.sorting_dialog_radio_descending
+        if (isDescending) {
             sorting = sorting or SORT_DESCENDING
         }
 
@@ -135,6 +136,16 @@ class ChangeSortingDialog(
         if (isDirectorySorting) {
             config.directorySorting = sorting
         } else {
+            val folderGrouping = config.getFolderGrouping(pathToUse)
+            val newGrouping = if (isDescending) {
+                folderGrouping or GROUP_DESCENDING
+            } else {
+                folderGrouping and GROUP_DESCENDING.inv()
+            }
+            if (newGrouping != folderGrouping) {
+                config.saveFolderGrouping(pathToUse, newGrouping)
+            }
+
             if (binding.sortingDialogUseForThisFolder.isChecked) {
                 config.saveCustomSorting(pathToUse, sorting)
             } else {

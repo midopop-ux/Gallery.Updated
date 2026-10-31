@@ -805,10 +805,11 @@ fun AppCompatActivity.updateDateTimeForPaths(
                 if (updateLastModified) {
                     try {
                         file.setLastModified(newLastModified)
+                        updateLastModified(path, newLastModified)
                     } catch (_: Exception) {}
                 }
 
-                val actualLastModified = file.lastModified()
+                val actualLastModified = if (updateLastModified) newLastModified else file.lastModified()
 
                 // 3. Prepare MediaStore update
                 val uri = getFileUri(path)
@@ -851,6 +852,7 @@ fun AppCompatActivity.updateDateTimeForPaths(
                     mediaDB.updateMediumModifiedAndSize(path, newLastModified, file.length())
                 }
 
+                Medium.markEdited(path)
                 didUpdateAny = true
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -871,16 +873,26 @@ fun AppCompatActivity.updateDateTimeForPaths(
         }
 
         rescanPaths(paths) {
-            if (updateLastModified) {
-                for (path in paths) {
-                    try {
-                        val f = File(path)
+            for (path in paths) {
+                try {
+                    val f = File(path)
+                    if (updateLastModified) {
                         f.setLastModified(newLastModified)
+                        updateLastModified(path, newLastModified)
                         mediaDB.updateMediumModifiedAndSize(path, newLastModified, f.length())
-                    } catch (_: Exception) {}
-                }
+                    }
+                    Medium.markEdited(path)
+                } catch (_: Exception) {}
+            }
+            ensureBackgroundThread {
+                try {
+                    Glide.get(applicationContext).clearDiskCache()
+                } catch (_: Exception) {}
             }
             runOnUiThread {
+                try {
+                    Glide.get(applicationContext).clearMemory()
+                } catch (_: Exception) {}
                 if (didUpdateAny) {
                     toast(R.string.date_time_updated_successfully)
                 } else {

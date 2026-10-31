@@ -556,6 +556,11 @@ class MediaAdapter(
                         updateLastModified,
                         newLastModified
                     ) {
+                        for (medium in selectedMedia) {
+                            if (updateDateTaken) medium.taken = newDateTaken
+                            if (updateLastModified) medium.modified = newLastModified
+                            Medium.markEdited(medium.path)
+                        }
                         listener?.refreshItems()
                         finishActMode()
                     }

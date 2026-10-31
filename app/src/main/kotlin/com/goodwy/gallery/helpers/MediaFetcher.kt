@@ -805,7 +805,10 @@ class MediaFetcher(val context: Context) {
 
                 sorting and SORT_BY_SIZE != 0 -> o1.size.compareTo(o2.size)
                 sorting and SORT_BY_DATE_MODIFIED != 0 -> o1.modified.compareTo(o2.modified)
-                sorting and SORT_BY_DATE_DELETED != 0 -> o1.deletedTS.compareTo(o2.deletedTS)
+                sorting and SORT_BY_DATE_DELETED != 0 -> {
+                    val res = o1.deletedTS.compareTo(o2.deletedTS)
+                    if (res != 0) res else o1.path.compareTo(o2.path)
+                }
                 else -> o1.taken.compareTo(o2.taken)
             }
 
@@ -836,7 +839,12 @@ class MediaFetcher(val context: Context) {
             mediumGroups.getOrPut(key) { ArrayList() }.add(it)
         }
 
-        val sortDescending = currentGrouping and GROUP_DESCENDING != 0
+        val folderSorting = context.config.getFolderSorting(pathToCheck)
+        val sortDescending = if (pathToCheck == RECYCLE_BIN || folderSorting and SORT_DESCENDING != 0) {
+            folderSorting and SORT_DESCENDING != 0
+        } else {
+            currentGrouping and GROUP_DESCENDING != 0
+        }
         val sorted = if (currentGrouping and GROUP_BY_LAST_MODIFIED_DAILY != 0 || currentGrouping and GROUP_BY_LAST_MODIFIED_MONTHLY != 0 ||
             currentGrouping and GROUP_BY_DATE_TAKEN_DAILY != 0 || currentGrouping and GROUP_BY_DATE_TAKEN_MONTHLY != 0||
             currentGrouping and GROUP_BY_DATE_TAKEN_YEARLY != 0 || currentGrouping and GROUP_BY_LAST_MODIFIED_YEARLY != 0

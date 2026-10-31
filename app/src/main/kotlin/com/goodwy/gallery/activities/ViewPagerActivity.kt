@@ -888,6 +888,8 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                         if (updateLastModified) {
                             currentMedium.modified = newLastModified
                         }
+                        Medium.markEdited(currentPath)
+                        updateActionbarTitle()
                     }
                 }
             }
