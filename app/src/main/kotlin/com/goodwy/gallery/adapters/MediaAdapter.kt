@@ -540,7 +540,22 @@ class MediaAdapter(
         val firstMedium = selectedMedia.firstOrNull() ?: return
         val selectedPaths = getSelectedPaths()
         val initialLastModified = File(firstMedium.path).lastModified()
-        val initialDateTaken = firstMedium.taken
+        val initialDateTaken = if (firstMedium.path.isImageFast()) {
+            try {
+                val exif = androidx.exifinterface.media.ExifInterface(firstMedium.path)
+                val dateStr = exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME_ORIGINAL)
+                    ?: exif.getAttribute(androidx.exifinterface.media.ExifInterface.TAG_DATETIME)
+                if (dateStr != null) {
+                    java.text.SimpleDateFormat("yyyy:MM:dd HH:mm:ss", java.util.Locale.ENGLISH).parse(dateStr)?.time ?: firstMedium.taken
+                } else {
+                    firstMedium.taken
+                }
+            } catch (_: Exception) {
+                firstMedium.taken
+            }
+        } else {
+            firstMedium.taken
+        }
 
         com.goodwy.gallery.dialogs.ChangeDateTimeDialog(
             activity,

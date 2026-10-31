@@ -866,7 +866,22 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
         val currentMedium = getCurrentMedium() ?: return
         val currentPath = getCurrentPath()
         val initialLastModified = File(currentPath).lastModified()
-        val initialDateTaken = currentMedium.taken
+        val initialDateTaken = if (currentPath.isImageFast()) {
+            try {
+                val exif = ExifInterface(currentPath)
+                val dateStr = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+                    ?: exif.getAttribute(ExifInterface.TAG_DATETIME)
+                if (dateStr != null) {
+                    SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.ENGLISH).parse(dateStr)?.time ?: currentMedium.taken
+                } else {
+                    currentMedium.taken
+                }
+            } catch (_: Exception) {
+                currentMedium.taken
+            }
+        } else {
+            currentMedium.taken
+        }
 
         com.goodwy.gallery.dialogs.ChangeDateTimeDialog(
             this,

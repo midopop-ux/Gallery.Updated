@@ -790,6 +790,7 @@ fun AppCompatActivity.updateDateTimeForPaths(
             try {
                 val file = File(path)
                 if (!file.exists()) continue
+                val originalLastModified = file.lastModified()
 
                 // 1. Update EXIF if requested and file is image
                 if (updateDateTaken && path.isImageFast()) {
@@ -802,15 +803,12 @@ fun AppCompatActivity.updateDateTimeForPaths(
                     } catch (_: Exception) {}
                 }
 
-                // 2. Update File lastModified on filesystem if requested
-                if (updateLastModified) {
-                    try {
-                        file.setLastModified(newLastModified)
-                        updateLastModified(path, newLastModified)
-                    } catch (_: Exception) {}
-                }
-
-                val actualLastModified = if (updateLastModified) newLastModified else file.lastModified()
+                // 2. Update File lastModified on filesystem
+                val actualLastModified = if (updateLastModified) newLastModified else originalLastModified
+                try {
+                    file.setLastModified(actualLastModified)
+                    updateLastModified(path, actualLastModified)
+                } catch (_: Exception) {}
 
                 // 3. Prepare MediaStore update
                 val uri = getFileUri(path)
