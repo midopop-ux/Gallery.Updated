@@ -1049,7 +1049,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             } catch (_: OutOfMemoryError) {
                 runOnUiThread { toast(com.goodwy.commons.R.string.out_of_memory_error) }
             } catch (e: Exception) {
-                runOnUiThread { toast("${getString(R.string.unknown_error_occurred)}: ${e.message}") }
+                runOnUiThread { toast("${getString(com.goodwy.commons.R.string.unknown_error_occurred)}: ${e.message}") }
             }
         }
     }
