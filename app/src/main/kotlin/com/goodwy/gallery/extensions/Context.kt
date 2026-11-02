@@ -161,7 +161,7 @@ val Context.dateTakensDB: DateTakensDao
 val Context.recycleBin: File
     get() {
         val dcim = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-        val dir = File(File(dcim, "Goodwy Gallery"), ".recycle_bin")
+        val dir = File(File(dcim, "Goodwy Gallery"), "recycle_bin")
         if (!dir.exists()) {
             dir.mkdirs()
         }
