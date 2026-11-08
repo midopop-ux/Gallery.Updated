@@ -38,3 +38,20 @@ native <methods>;
 -dontwarn org.openjsse.javax.net.ssl.SSLParameters
 -dontwarn org.openjsse.javax.net.ssl.SSLSocket
 -dontwarn org.openjsse.net.ssl.OpenJSSE
+
+# ExifInterface
+-keep class androidx.exifinterface.media.** { *; }
+-dontwarn androidx.exifinterface.media.**
+-keep class it.sephiroth.android.library.exif2.** { *; }
+-dontwarn it.sephiroth.android.library.exif2.**
+
+# Room & SQLite
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**
+-keep class androidx.sqlite.** { *; }
+-dontwarn androidx.sqlite.**
+
+# Glide
+-keep public class * extends com.bumptech.glide.module.AppGlideModule
+-keep class com.bumptech.glide.** { *; }
+-dontwarn com.bumptech.glide.**

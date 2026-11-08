@@ -661,7 +661,8 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
         }
 
         if (shouldUpdate) {
-            setupAdapter(dirs)
+            val snapshot = synchronized(dirs) { ArrayList(dirs) }
+            setupAdapter(snapshot)
         }
     }
 
