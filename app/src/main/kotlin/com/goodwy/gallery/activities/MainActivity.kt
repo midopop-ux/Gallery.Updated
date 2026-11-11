@@ -447,6 +447,15 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
             findItem(R.id.temporarily_show_excluded).isVisible = !config.temporarilyShowExcluded
             findItem(R.id.stop_showing_excluded).isVisible = config.temporarilyShowExcluded
+
+            for (i in 0 until size()) {
+                val item = getItem(i)
+                if (item.itemId != R.id.menu_customize_options) {
+                    if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(this@MainActivity, "main", item.itemId)) {
+                        item.isVisible = false
+                    }
+                }
+            }
         }
     }
 
@@ -493,6 +502,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
 
         binding.mainMenu.requireToolbar().setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.menu_customize_options -> customizeMenu()
                 R.id.search -> launchSearchActivity()
                 R.id.show_all -> showAllMedia()
                 R.id.sort -> showSortingDialog()
@@ -513,6 +523,20 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
                 else -> return@setOnMenuItemClickListener false
             }
             return@setOnMenuItemClickListener true
+        }
+    }
+
+    private fun customizeMenu() {
+        val allItems = mutableListOf<com.goodwy.gallery.dialogs.CustomMenuItem>()
+        val menu = binding.mainMenu.requireToolbar().menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId != R.id.menu_customize_options) {
+                allItems.add(com.goodwy.gallery.dialogs.CustomMenuItem(item.itemId, item.title?.toString() ?: "", item.icon))
+            }
+        }
+        com.goodwy.gallery.dialogs.MenuCustomizer.showDialog(this, "main", allItems) {
+            refreshMenuItems()
         }
     }
 

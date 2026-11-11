@@ -85,4 +85,10 @@
         android:showAsAction="never"
         android:title="@string/about"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_customize_options"
+        android:icon="@drawable/ic_edit_vector"
+        android:showAsAction="never"
+        android:title="@string/customize_options_menu"
+        app:showAsAction="never" />
 </menu>

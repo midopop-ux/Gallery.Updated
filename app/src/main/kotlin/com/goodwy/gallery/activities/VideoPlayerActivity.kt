@@ -184,6 +184,8 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
         updateMenuItemColors(binding.videoToolbar.menu, forceWhiteIcons = true)
         binding.videoToolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.menu_customize_options -> customizeMenu()
+                R.id.menu_playback_speed -> showPlaybackSpeedPicker()
                 R.id.menu_force_portrait -> toggleOrientation(SCREEN_ORIENTATION_PORTRAIT)
                 R.id.menu_force_landscape -> toggleOrientation(SCREEN_ORIENTATION_LANDSCAPE)
                 R.id.menu_force_landscape_reverse -> toggleOrientation(SCREEN_ORIENTATION_REVERSE_LANDSCAPE)
@@ -197,6 +199,33 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
 
         binding.videoToolbar.setNavigationOnClickListener {
             finish()
+        }
+        applyMenuCustomization()
+    }
+
+    private fun applyMenuCustomization() {
+        val menu = binding.videoToolbar.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId != R.id.menu_customize_options) {
+                if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(this, "video_player", item.itemId)) {
+                    item.isVisible = false
+                }
+            }
+        }
+    }
+
+    private fun customizeMenu() {
+        val allItems = mutableListOf<com.goodwy.gallery.dialogs.CustomMenuItem>()
+        val menu = binding.videoToolbar.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId != R.id.menu_customize_options) {
+                allItems.add(com.goodwy.gallery.dialogs.CustomMenuItem(item.itemId, item.title?.toString() ?: "", item.icon))
+            }
+        }
+        com.goodwy.gallery.dialogs.MenuCustomizer.showDialog(this, "video_player", allItems) {
+            setupOptionsMenu()
         }
     }
 

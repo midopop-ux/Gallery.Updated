@@ -371,6 +371,15 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             val viewType = config.getFolderViewType(if (mShowAll) SHOW_ALL else mPath)
             findItem(R.id.column_count).isVisible = viewType == VIEW_TYPE_GRID
             findItem(R.id.toggle_filename).isVisible = viewType == VIEW_TYPE_GRID
+
+            for (i in 0 until size()) {
+                val item = getItem(i)
+                if (item.itemId != R.id.menu_customize_options) {
+                    if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(this@MediaActivity, "media", item.itemId)) {
+                        item.isVisible = false
+                    }
+                }
+            }
         }
     }
 
@@ -412,6 +421,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
 
         binding.mediaMenu.requireToolbar().setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.menu_customize_options -> customizeMenu()
                 R.id.search -> launchSearchActivity()
                 R.id.folder_view -> switchToFolderView()
                 R.id.sort -> showSortingDialog()
@@ -436,6 +446,20 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 else -> return@setOnMenuItemClickListener false
             }
             return@setOnMenuItemClickListener true
+        }
+    }
+
+    private fun customizeMenu() {
+        val allItems = mutableListOf<com.goodwy.gallery.dialogs.CustomMenuItem>()
+        val menu = binding.mediaMenu.requireToolbar().menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId != R.id.menu_customize_options) {
+                allItems.add(com.goodwy.gallery.dialogs.CustomMenuItem(item.itemId, item.title?.toString() ?: "", item.icon))
+            }
+        }
+        com.goodwy.gallery.dialogs.MenuCustomizer.showDialog(this, "media", allItems) {
+            refreshMenuItems()
         }
     }
 

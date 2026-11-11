@@ -226,7 +226,7 @@ class Config(context: Context) : BaseConfig(context) {
         }
 
     var videoPlayerType: Int
-        get() = prefs.getInt(VIDEO_PLAYER_TYPE, if (appRunCount <= 1) VIDEO_PLAYER_APP else VIDEO_PLAYER_SYSTEM)
+        get() = prefs.getInt(VIDEO_PLAYER_TYPE, VIDEO_PLAYER_APP)
         set(videoPlayerType) = prefs.edit { putInt(VIDEO_PLAYER_TYPE, videoPlayerType) }
 
     var displayFileNames: Boolean

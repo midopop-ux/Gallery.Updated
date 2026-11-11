@@ -316,4 +316,16 @@
     <string name="cannot_replace_same_file">Cannot replace the same file with itself</string>
     <string name="preview">Preview</string>
     <string name="stretch_image">Stretch image</string>
+    <string name="customize_options_menu">Customize options menu</string>
+    <string name="customize_menu_hint">Drag to reorder items or tap the eye to show/hide</string>
+    <string name="menu_order_reset">Menu order reset to default</string>
+    <string name="trim_video">Trim video</string>
+    <string name="start_time">Start time</string>
+    <string name="end_time">End time</string>
+    <string name="video_filters">Video filters</string>
+    <string name="video_saved_successfully">Video saved successfully</string>
+    <string name="failed_to_save_video">Failed to save video</string>
+    <string name="crop_video">Crop video</string>
+    <string name="drag_to_reorder">Drag to reorder</string>
+    <string name="option_icon_cd">Option icon</string>
 </resources>

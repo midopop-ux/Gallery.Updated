@@ -233,6 +233,15 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                         MenuItem.SHOW_AS_ACTION_IF_ROOM
                     }
                 )
+
+                for (i in 0 until size()) {
+                    val item = getItem(i)
+                    if (item.itemId != R.id.menu_customize_options) {
+                        if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(this@ViewPagerActivity, "viewpager", item.itemId)) {
+                            item.isVisible = false
+                        }
+                    }
+                }
             }
 
             if (visibleBottomActions != 0) {
@@ -260,6 +269,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
             }
 
             when (menuItem.itemId) {
+                R.id.menu_customize_options -> customizeMenu()
                 R.id.menu_set_as -> setAs(getCurrentPath())
                 R.id.menu_slideshow -> initSlideshow()
                 R.id.menu_copy_to -> checkMediaManagementAndCopy(true)
@@ -298,6 +308,20 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
 
         binding.mediumViewerToolbar.setNavigationOnClickListener {
             finish()
+        }
+    }
+
+    private fun customizeMenu() {
+        val allItems = mutableListOf<com.goodwy.gallery.dialogs.CustomMenuItem>()
+        val menu = binding.mediumViewerToolbar.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId != R.id.menu_customize_options) {
+                allItems.add(com.goodwy.gallery.dialogs.CustomMenuItem(item.itemId, item.title?.toString() ?: "", item.icon))
+            }
+        }
+        com.goodwy.gallery.dialogs.MenuCustomizer.showDialog(this, "viewpager", allItems) {
+            refreshMenuItems()
         }
     }
 
