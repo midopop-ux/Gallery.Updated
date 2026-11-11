@@ -74,8 +74,6 @@ class VideoEditorDialog(
         }
 
         val builder = activity.getAlertDialogBuilder()
-            .setTitle(R.string.edit)
-            .setView(dialogView)
             .setPositiveButton(com.goodwy.commons.R.string.save) { _, _ ->
                 val startMs = parseMs(startTimeInput.text?.toString().orEmpty())
                 val endMs = parseMs(endTimeInput.text?.toString().orEmpty()).coerceAtMost(durationMs)
@@ -110,9 +108,8 @@ class VideoEditorDialog(
                 }
             }
             .setNegativeButton(com.goodwy.commons.R.string.cancel, null)
-            .apply {
-                activity.setupDialogStuff(dialogView, this, R.string.edit)
-            }
+
+        activity.setupDialogStuff(dialogView, builder, R.string.edit)
     }
 
     /**

@@ -99,7 +99,7 @@ object MenuCustomizer {
         itemTouchHelper.attachToRecyclerView(recyclerView)
         adapter.touchHelper = itemTouchHelper
 
-        activity.getAlertDialogBuilder()
+        val builder = activity.getAlertDialogBuilder()
             .setPositiveButton(com.goodwy.commons.R.string.ok) { _, _ ->
                 val orderToSave = currentItems.joinToString(",") { it.id.toString() }
                 prefs.edit()
@@ -108,7 +108,7 @@ object MenuCustomizer {
                     .apply()
                 onDismiss()
             }
-            .setNeutralButton(com.goodwy.commons.R.string.reset) { _, _ ->
+            .setNeutralButton(R.string.reset) { _, _ ->
                 prefs.edit()
                     .remove(getPrefKey(menuTag))
                     .remove(getHiddenKey(menuTag))
@@ -117,9 +117,8 @@ object MenuCustomizer {
                 onDismiss()
             }
             .setNegativeButton(com.goodwy.commons.R.string.cancel, null)
-            .apply {
-                activity.setupDialogStuff(dialogView, this, R.string.customize_options_menu)
-            }
+
+        activity.setupDialogStuff(dialogView, builder, R.string.customize_options_menu)
     }
 
     private class MenuCustomizerAdapter(
