@@ -115,7 +115,20 @@ class VideoEditorActivity : SimpleActivity() {
     private fun setupPlayer() {
         val player = ExoPlayer.Builder(this).build()
         exoPlayer = player
-        binding.editorPlayerView.player = player
+
+        binding.editorVideoSurface.surfaceTextureListener = object : android.view.TextureView.SurfaceTextureListener {
+            override fun onSurfaceTextureAvailable(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {
+                player.setVideoSurface(android.view.Surface(surface))
+            }
+
+            override fun onSurfaceTextureSizeChanged(surface: android.graphics.SurfaceTexture, width: Int, height: Int) {}
+            override fun onSurfaceTextureDestroyed(surface: android.graphics.SurfaceTexture): Boolean {
+                player.setVideoSurface(null)
+                return true
+            }
+
+            override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) {}
+        }
 
         val mediaItem = MediaItem.fromUri(Uri.fromFile(File(videoPath)))
         player.setMediaItem(mediaItem)
@@ -157,12 +170,10 @@ class VideoEditorActivity : SimpleActivity() {
         }
 
         binding.btnFullscreen.setOnClickListener {
-            val isFit = binding.editorPlayerView.resizeMode == androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-            binding.editorPlayerView.resizeMode = if (isFit) {
-                androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            } else {
-                androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-            }
+            val lp = binding.editorVideoSurface.layoutParams
+            lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+            lp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            binding.editorVideoSurface.layoutParams = lp
         }
 
         // Loop check inside playback range
