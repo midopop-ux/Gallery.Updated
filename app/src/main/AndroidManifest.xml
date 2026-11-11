@@ -1,348 +1,559 @@
-<?xml version='1.0' encoding='utf-8'?>
-<manifest xmlns:ns0="http://schemas.android.com/apk/res/android" xmlns:ns1="http://schemas.android.com/tools" ns0:installLocation="auto">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:installLocation="auto">
 
-    
-    <uses-permission ns0:name="android.permission.WRITE_EXTERNAL_STORAGE" ns0:maxSdkVersion="40" ns1:replace="android:maxSdkVersion" />
+    <!-- override the android:maxSdkVersion="28" from PhotoEditorSDK with some higher number -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="40"
+        tools:replace="android:maxSdkVersion" />
 
-    <uses-permission ns0:name="android.permission.SET_WALLPAPER" />
-    <uses-permission ns0:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission ns0:name="android.permission.ACCESS_MEDIA_LOCATION" />
-    <uses-permission ns0:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission ns0:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission ns0:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
-    <uses-permission ns0:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission ns0:name="android.permission.MANAGE_EXTERNAL_STORAGE" ns1:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
 
-    <uses-permission ns0:name="android.permission.MANAGE_MEDIA" ns1:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.MANAGE_MEDIA"
+        tools:ignore="ProtectedPermissions" />
 
+<!--    Third-party purchases do not work-->
+<!--    <uses-permission-->
+<!--        android:name="android.permission.ACCESS_NETWORK_STATE"-->
+<!--        tools:node="remove" />-->
 
-
-
-
-
-    <uses-permission ns0:name="android.permission.CAMERA" ns1:node="remove" />
+    <uses-permission
+        android:name="android.permission.CAMERA"
+        tools:node="remove" />
 
     <queries>
-        <package ns0:name="dev.goodwy.phone.debug" />
-        <package ns0:name="dev.goodwy.phone" />
-        <package ns0:name="dev.goodwy.messages.debug" />
-        <package ns0:name="dev.goodwy.messages" />
-        <package ns0:name="dev.goodwy.contacts.debug" />
-        <package ns0:name="dev.goodwy.contacts" />
-        <package ns0:name="dev.goodwy.gallery.debug" />
-        <package ns0:name="dev.goodwy.gallery" />
-        <package ns0:name="dev.goodwy.math.debug" />
-        <package ns0:name="dev.goodwy.math" />
-        <package ns0:name="dev.goodwy.filemanager.debug" />
-        <package ns0:name="dev.goodwy.filemanager" />
+        <package android:name="dev.goodwy.phone.debug" />
+        <package android:name="dev.goodwy.phone" />
+        <package android:name="dev.goodwy.messages.debug" />
+        <package android:name="dev.goodwy.messages" />
+        <package android:name="dev.goodwy.contacts.debug" />
+        <package android:name="dev.goodwy.contacts" />
+        <package android:name="dev.goodwy.gallery.debug" />
+        <package android:name="dev.goodwy.gallery" />
+        <package android:name="dev.goodwy.math.debug" />
+        <package android:name="dev.goodwy.math" />
+        <package android:name="dev.goodwy.filemanager.debug" />
+        <package android:name="dev.goodwy.filemanager" />
 
-        <package ns0:name="com.goodwy.dialer.debug" />
-        <package ns0:name="com.goodwy.dialer" />
-        <package ns0:name="com.goodwy.contacts.debug" />
-        <package ns0:name="com.goodwy.contacts" />
-        <package ns0:name="com.goodwy.smsmessenger.debug" />
-        <package ns0:name="com.goodwy.smsmessenger" />
-        <package ns0:name="com.goodwy.voicerecorder.debug" />
-        <package ns0:name="com.goodwy.voicerecorder" />
-        <package ns0:name="com.goodwy.voicerecorderfree.debug" />
-        <package ns0:name="com.goodwy.voicerecorderfree" />
-        <package ns0:name="com.goodwy.gallery.debug" />
-        <package ns0:name="com.goodwy.gallery" />
-        <package ns0:name="com.goodwy.filemanager.debug" />
-        <package ns0:name="com.goodwy.filemanager" />
-        <package ns0:name="com.goodwy.calendar" />
-        <package ns0:name="com.goodwy.calendar.debug" />
-        <package ns0:name="com.goodwy.audiobook" />
-        <package ns0:name="com.goodwy.audiobooklite" />
-        <package ns0:name="com.goodwy.keyboard" />
+        <package android:name="com.goodwy.dialer.debug" />
+        <package android:name="com.goodwy.dialer" />
+        <package android:name="com.goodwy.contacts.debug" />
+        <package android:name="com.goodwy.contacts" />
+        <package android:name="com.goodwy.smsmessenger.debug" />
+        <package android:name="com.goodwy.smsmessenger" />
+        <package android:name="com.goodwy.voicerecorder.debug" />
+        <package android:name="com.goodwy.voicerecorder" />
+        <package android:name="com.goodwy.voicerecorderfree.debug" />
+        <package android:name="com.goodwy.voicerecorderfree" />
+        <package android:name="com.goodwy.gallery.debug" />
+        <package android:name="com.goodwy.gallery" />
+        <package android:name="com.goodwy.filemanager.debug" />
+        <package android:name="com.goodwy.filemanager" />
+        <package android:name="com.goodwy.calendar" />
+        <package android:name="com.goodwy.calendar.debug" />
+        <package android:name="com.goodwy.audiobook" />
+        <package android:name="com.goodwy.audiobooklite" />
+        <package android:name="com.goodwy.keyboard" />
     </queries>
 
-    <uses-feature ns0:name="android.hardware.faketouch" ns0:required="false" />
+    <uses-feature
+        android:name="android.hardware.faketouch"
+        android:required="false" />
 
-    <uses-feature ns0:name="android.hardware.camera" ns0:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
-    <application ns0:name="com.goodwy.gallery.App" ns0:allowBackup="true" ns0:appCategory="image" ns0:icon="@mipmap/ic_launcher" ns0:label="@string/app_launcher_name" ns0:requestLegacyExternalStorage="true" ns0:roundIcon="@mipmap/ic_launcher" ns0:supportsRtl="true" ns0:theme="@style/AppTheme" ns1:replace="android:label">
+    <application
+        android:name="com.goodwy.gallery.App"
+        android:allowBackup="true"
+        android:appCategory="image"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_launcher_name"
+        android:requestLegacyExternalStorage="true"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        tools:replace="android:label">
 
-        <activity ns0:name=".activities.SplashActivity" ns0:exported="false" ns0:theme="@style/SplashTheme" />
+        <activity
+            android:name=".activities.SplashActivity"
+            android:exported="false"
+            android:theme="@style/SplashTheme" />
 
-        <activity ns0:name=".activities.CrashReportActivity" ns0:exported="false" ns0:process=":crash" ns0:theme="@style/AppTheme" />
+        <activity
+            android:name=".activities.CrashReportActivity"
+            android:exported="false"
+            android:process=":crash"
+            android:theme="@style/AppTheme" />
 
-        <activity ns0:name=".activities.MainActivity" ns0:configChanges="orientation" ns0:exported="true" ns0:resizeableActivity="true">
+        <activity
+            android:name=".activities.MainActivity"
+            android:configChanges="orientation"
+            android:exported="true"
+            android:resizeableActivity="true">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.PICK" />
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <action android:name="android.intent.action.PICK" />
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data ns0:mimeType="image/*" />
-                <data ns0:mimeType="video/*" />
-                <data ns0:mimeType="vnd.android.cursor.dir/image" />
-                <data ns0:mimeType="vnd.android.cursor.dir/video" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="vnd.android.cursor.dir/image" />
+                <data android:mimeType="vnd.android.cursor.dir/video" />
             </intent-filter>
 
             <intent-filter>
-                <action ns0:name="android.intent.action.GET_CONTENT" />
+                <action android:name="android.intent.action.GET_CONTENT" />
 
-                <category ns0:name="android.intent.category.OPENABLE" />
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data ns0:mimeType="image/*" />
-                <data ns0:mimeType="video/*" />
-                <data ns0:mimeType="vnd.android.cursor.dir/image" />
-                <data ns0:mimeType="vnd.android.cursor.dir/video" />
-                <data ns0:scheme="com.goodwy.dialer.scheme" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="vnd.android.cursor.dir/image" />
+                <data android:mimeType="vnd.android.cursor.dir/video" />
+                <data android:scheme="com.goodwy.dialer.scheme" />
             </intent-filter>
         </activity>
 
-        <activity ns0:name=".activities.MediaActivity" ns0:configChanges="orientation" ns0:exported="false" ns0:parentActivityName=".activities.MainActivity" />
+        <activity
+            android:name=".activities.MediaActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:parentActivityName=".activities.MainActivity" />
 
-        <activity ns0:name=".activities.SearchActivity" ns0:configChanges="orientation" ns0:exported="false" ns0:label="@string/search" ns0:parentActivityName=".activities.MainActivity" ns0:resizeableActivity="true" />
+        <activity
+            android:name=".activities.SearchActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/search"
+            android:parentActivityName=".activities.MainActivity"
+            android:resizeableActivity="true" />
 
-        <activity ns0:name=".activities.ViewPagerActivity" ns0:configChanges="orientation|keyboardHidden|screenSize" ns0:exported="true" ns0:parentActivityName=".activities.MediaActivity" ns0:theme="@style/TranslucentTheme">
+        <activity
+            android:name=".activities.ViewPagerActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true"
+            android:parentActivityName=".activities.MediaActivity"
+            android:theme="@style/TranslucentTheme">
 
             <intent-filter>
-                <action ns0:name="com.android.camera.action.REVIEW" />
+                <action android:name="com.android.camera.action.REVIEW" />
 
-                <category ns0:name="android.intent.category.BROWSABLE" />
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data ns0:mimeType="image/*" />
-                <data ns0:mimeType="video/*" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
             </intent-filter>
 
             <intent-filter>
-                <action ns0:name="android.provider.action.REVIEW" />
+                <action android:name="android.provider.action.REVIEW" />
 
-                <category ns0:name="android.intent.category.BROWSABLE" />
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data ns0:mimeType="image/*" />
-                <data ns0:mimeType="video/*" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
 
-        <activity ns0:name="com.goodwy.commons.activities.AboutActivity" ns0:configChanges="orientation" ns0:exported="false" ns0:label="@string/about" ns0:parentActivityName=".activities.MainActivity" />
+        <activity
+            android:name="com.goodwy.commons.activities.AboutActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/about"
+            android:parentActivityName=".activities.MainActivity" />
 
-        <activity ns0:name="com.goodwy.commons.activities.PurchaseActivity" ns0:configChanges="orientation" ns0:exported="false" ns0:label="" ns0:parentActivityName=".activities.MainActivity" />
+        <activity
+            android:name="com.goodwy.commons.activities.PurchaseActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label=""
+            android:parentActivityName=".activities.MainActivity" />
 
-        <activity ns0:name="com.goodwy.commons.activities.CustomizationActivity" ns0:configChanges="orientation" ns0:exported="false" ns0:label="@string/customize_colors" ns0:parentActivityName=".activities.SettingsActivity" />
+        <activity
+            android:name="com.goodwy.commons.activities.CustomizationActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/customize_colors"
+            android:parentActivityName=".activities.SettingsActivity" />
 
-        <activity ns0:name=".activities.SettingsActivity" ns0:configChanges="orientation" ns0:exported="true" ns0:label="@string/settings" ns0:parentActivityName=".activities.MainActivity">
+        <activity
+            android:name=".activities.SettingsActivity"
+            android:configChanges="orientation"
+            android:exported="true"
+            android:label="@string/settings"
+            android:parentActivityName=".activities.MainActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.APPLICATION_PREFERENCES" />
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
-        <activity ns0:name=".activities.PhotoVideoActivity" ns0:configChanges="orientation|keyboardHidden|screenSize" ns0:exported="false" ns0:theme="@style/TranslucentTheme" />
+        <activity
+            android:name=".activities.PhotoVideoActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
+            android:theme="@style/TranslucentTheme" />
 
-        <activity ns0:name=".activities.VideoPlayerActivity" ns0:configChanges="orientation|keyboardHidden|screenSize" ns0:exported="false" ns0:parentActivityName=".activities.MediaActivity" ns0:theme="@style/TranslucentTheme" />
+        <activity
+            android:name=".activities.VideoPlayerActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
+            android:parentActivityName=".activities.MediaActivity"
+            android:theme="@style/TranslucentTheme" />
 
-        <activity ns0:name=".activities.IncludedFoldersActivity" ns0:configChanges="orientation" ns0:exported="false" ns0:label="@string/include_folders" ns0:parentActivityName=".activities.SettingsActivity" />
+        <activity
+            android:name=".activities.VideoEditorActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="false"
+            android:theme="@style/TranslucentTheme" />
 
-        <activity ns0:name=".activities.ExcludedFoldersActivity" ns0:configChanges="orientation" ns0:exported="false" ns0:label="@string/excluded_folders" ns0:parentActivityName=".activities.SettingsActivity" />
+        <activity
+            android:name=".activities.IncludedFoldersActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/include_folders"
+            android:parentActivityName=".activities.SettingsActivity" />
 
-        <activity ns0:name=".activities.HiddenFoldersActivity" ns0:configChanges="orientation" ns0:exported="false" ns0:label="@string/hidden_folders" ns0:parentActivityName=".activities.SettingsActivity" />
+        <activity
+            android:name=".activities.ExcludedFoldersActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/excluded_folders"
+            android:parentActivityName=".activities.SettingsActivity" />
 
-        <activity ns0:name=".activities.PhotoActivity" ns0:configChanges="orientation|keyboardHidden|screenSize" ns0:exported="true">
+        <activity
+            android:name=".activities.HiddenFoldersActivity"
+            android:configChanges="orientation"
+            android:exported="false"
+            android:label="@string/hidden_folders"
+            android:parentActivityName=".activities.SettingsActivity" />
+
+        <activity
+            android:name=".activities.PhotoActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true">
             <intent-filter>
-                <action ns0:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.VIEW" />
 
-                <category ns0:name="android.intent.category.BROWSABLE" />
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data ns0:mimeType="image/*" />
+                <data android:mimeType="image/*" />
             </intent-filter>
 
             <intent-filter>
-                <action ns0:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.VIEW" />
 
-                <category ns0:name="android.intent.category.DEFAULT" />
-                <category ns0:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
 
-                <data ns0:scheme="content" />
-                <data ns0:host="*" />
-                <data ns0:pathPattern=".*\\.jxl" />
-                <data ns0:mimeType="application/octet-stream" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.jxl" />
+                <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
 
-        <activity ns0:name=".activities.VideoActivity" ns0:configChanges="orientation|keyboardHidden|screenSize" ns0:exported="true">
+        <activity
+            android:name=".activities.VideoActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true">
             <intent-filter>
-                <action ns0:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.VIEW" />
 
-                <category ns0:name="android.intent.category.BROWSABLE" />
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data ns0:mimeType="video/*" />
+                <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
 
-        <activity ns0:name="com.goodwy.gallery.activities.EditActivity" ns0:configChanges="orientation" ns0:exported="true" ns0:label="@string/editor">
+        <activity
+            android:name="com.goodwy.gallery.activities.EditActivity"
+            android:configChanges="orientation"
+            android:exported="true"
+            android:label="@string/editor">
 
-            <intent-filter ns0:name="foss-editor">
+            <intent-filter android:name="foss-editor">
 
-                <action ns0:name="android.intent.action.EDIT" />
+                <action android:name="android.intent.action.EDIT" />
 
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data ns0:mimeType="image/*" />
+                <data android:mimeType="image/*" />
             </intent-filter>
 
             <intent-filter>
-                <action ns0:name="com.android.camera.action.CROP" />
+                <action android:name="com.android.camera.action.CROP" />
 
-                <data ns0:scheme="content" />
-                <data ns0:scheme="file" />
-                <data ns0:mimeType="image/*" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="image/*" />
 
-                <category ns0:name="android.intent.category.DEFAULT" />
-                <category ns0:name="android.intent.category.ALTERNATIVE" />
-                <category ns0:name="android.intent.category.SELECTED_ALTERNATIVE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.ALTERNATIVE" />
+                <category android:name="android.intent.category.SELECTED_ALTERNATIVE" />
             </intent-filter>
         </activity>
 
-        <activity ns0:name=".activities.SetWallpaperActivity" ns0:configChanges="orientation" ns0:exported="true" ns0:label="@string/wallpaper">
+        <activity
+            android:name=".activities.SetWallpaperActivity"
+            android:configChanges="orientation"
+            android:exported="true"
+            android:label="@string/wallpaper">
             <intent-filter>
-                <action ns0:name="android.intent.action.ATTACH_DATA" />
+                <action android:name="android.intent.action.ATTACH_DATA" />
 
-                <category ns0:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.DEFAULT" />
 
-                <data ns0:mimeType="image/*" />
+                <data android:mimeType="image/*" />
             </intent-filter>
 
             <intent-filter>
-                <action ns0:name="android.intent.action.SET_WALLPAPER" />
+                <action android:name="android.intent.action.SET_WALLPAPER" />
 
-                <category ns0:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity ns0:name=".activities.WidgetConfigureActivity" ns0:exported="true" ns0:screenOrientation="portrait" ns0:theme="@style/MyWidgetConfigTheme">
-            <intent-filter>
-                <action ns0:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
-        <provider ns0:name="androidx.core.content.FileProvider" ns0:authorities="${applicationId}.provider" ns0:exported="false" ns0:grantUriPermissions="true">
-            <meta-data ns0:name="android.support.FILE_PROVIDER_PATHS" ns0:resource="@xml/provider_paths" />
+        <activity
+            android:name=".activities.WidgetConfigureActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/MyWidgetConfigTheme">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
         </provider>
 
-        <receiver ns0:name=".receivers.RefreshMediaReceiver" ns0:exported="true">
+        <receiver
+            android:name=".receivers.RefreshMediaReceiver"
+            android:exported="true">
             <intent-filter>
-                <action ns0:name="com.goodwy.REFRESH_MEDIA" />
+                <action android:name="com.goodwy.REFRESH_MEDIA" />
             </intent-filter>
         </receiver>
 
-        <receiver ns0:name=".helpers.MyWidgetProvider" ns0:exported="true" ns0:icon="@drawable/img_widget_preview" ns0:label="@string/folder">
+        <receiver
+            android:name=".helpers.MyWidgetProvider"
+            android:exported="true"
+            android:icon="@drawable/img_widget_preview"
+            android:label="@string/folder">
             <intent-filter>
-                <action ns0:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
 
-            <meta-data ns0:name="android.appwidget.provider" ns0:resource="@xml/widget_info" />
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
         </receiver>
 
-        <receiver ns0:name=".receivers.BootCompletedReceiver" ns0:enabled="true" ns0:exported="true">
+        <receiver
+            android:name=".receivers.BootCompletedReceiver"
+            android:enabled="true"
+            android:exported="true">
             <intent-filter>
-                <action ns0:name="android.intent.action.BOOT_COMPLETED" />
-                <action ns0:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
 
-        <service ns0:name=".jobs.NewPhotoFetcher" ns0:exported="true" ns0:permission="android.permission.BIND_JOB_SERVICE" />
+        <service
+            android:name=".jobs.NewPhotoFetcher"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <activity-alias ns0:name=".activities.SplashActivity.Original" ns0:enabled="true" ns0:exported="true" ns0:icon="@mipmap/ic_launcher" ns0:roundIcon="@mipmap/ic_launcher" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Original"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
+            android:targetActivity=".activities.SplashActivity">
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.One" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_one" ns0:roundIcon="@mipmap/ic_launcher_one" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.One"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_one"
+            android:roundIcon="@mipmap/ic_launcher_one"
+            android:targetActivity=".activities.SplashActivity">
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Two" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_two" ns0:roundIcon="@mipmap/ic_launcher_two" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Two"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_two"
+            android:roundIcon="@mipmap/ic_launcher_two"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Three" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_three" ns0:roundIcon="@mipmap/ic_launcher_three" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Three"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_three"
+            android:roundIcon="@mipmap/ic_launcher_three"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Four" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_four" ns0:roundIcon="@mipmap/ic_launcher_four" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Four"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_four"
+            android:roundIcon="@mipmap/ic_launcher_four"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Five" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_five" ns0:roundIcon="@mipmap/ic_launcher_five" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Five"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_five"
+            android:roundIcon="@mipmap/ic_launcher_five"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Six" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_six" ns0:roundIcon="@mipmap/ic_launcher_six" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Six"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_six"
+            android:roundIcon="@mipmap/ic_launcher_six"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Seven" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_seven" ns0:roundIcon="@mipmap/ic_launcher_seven" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Seven"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_seven"
+            android:roundIcon="@mipmap/ic_launcher_seven"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Eight" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_eight" ns0:roundIcon="@mipmap/ic_launcher_eight" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Eight"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_eight"
+            android:roundIcon="@mipmap/ic_launcher_eight"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Nine" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_nine" ns0:roundIcon="@mipmap/ic_launcher_nine" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Nine"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_nine"
+            android:roundIcon="@mipmap/ic_launcher_nine"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Ten" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_ten" ns0:roundIcon="@mipmap/ic_launcher_ten" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Ten"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_ten"
+            android:roundIcon="@mipmap/ic_launcher_ten"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
 
-        <activity-alias ns0:name=".activities.SplashActivity.Eleven" ns0:enabled="false" ns0:exported="true" ns0:icon="@mipmap/ic_launcher_eleven" ns0:roundIcon="@mipmap/ic_launcher_eleven" ns0:targetActivity=".activities.SplashActivity">
+        <activity-alias
+            android:name=".activities.SplashActivity.Eleven"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_eleven"
+            android:roundIcon="@mipmap/ic_launcher_eleven"
+            android:targetActivity=".activities.SplashActivity">
 
             <intent-filter>
-                <action ns0:name="android.intent.action.MAIN" />
-                <category ns0:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
-    <activity ns0:name=".activities.VideoEditorActivity" ns0:configChanges="orientation|keyboardHidden|screenSize" ns0:exported="false" ns0:theme="@style/TranslucentTheme" /></application>
+    </application>
 </manifest>
