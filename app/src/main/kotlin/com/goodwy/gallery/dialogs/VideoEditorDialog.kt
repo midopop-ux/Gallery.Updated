@@ -158,7 +158,7 @@ class VideoEditorDialog(
                 val outputPath = File(parent, "${baseName}_edited.$ext").absolutePath
 
                 val progressDialog = ProgressDialog(activity).apply {
-                    setMessage(activity.getString(R.string.saving))
+                    setMessage(activity.getString(com.goodwy.commons.R.string.saving))
                     setCancelable(false)
                     show()
                 }
