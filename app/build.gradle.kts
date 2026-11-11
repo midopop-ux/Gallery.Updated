@@ -182,6 +182,8 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.transformer)
+    implementation(libs.androidx.media3.effect)
     implementation(libs.sanselan)
     implementation(libs.androidsvg.aar)
     implementation(libs.gestureviews)
