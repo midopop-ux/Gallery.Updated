@@ -105,7 +105,10 @@ fun Activity.launchGesturePlayer(path: String, extras: HashMap<String, Boolean> 
 fun Activity.openEditor(path: String, forceChooser: Boolean = false) {
     val newPath = path.removePrefix("file://")
     if (newPath.isVideoFast()) {
-        com.goodwy.gallery.dialogs.VideoEditorDialog(this, newPath)
+        val intent = Intent(this, com.goodwy.gallery.activities.VideoEditorActivity::class.java).apply {
+            putExtra("video_path", newPath)
+        }
+        startActivity(intent)
     } else {
         openEditorIntent(newPath, forceChooser, BuildConfig.APPLICATION_ID)
     }

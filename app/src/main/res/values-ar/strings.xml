@@ -290,4 +290,16 @@
     <string name="cannot_replace_same_file">لا يمكن استبدال الملف بنفسه</string>
     <string name="preview">معاينة</string>
     <string name="stretch_image">مط الصورة</string>
+    <string name="customize_options_menu">تخصيص قائمة الخيارات</string>
+    <string name="customize_menu_hint">اسحب لإعادة الترتيب أو اضغط على العين للإظهار/الإخفاء</string>
+    <string name="menu_order_reset">تمت استعادة الترتيب الافتراضي للقائمة</string>
+    <string name="trim_video">قص الفيديو</string>
+    <string name="start_time">وقت البدء</string>
+    <string name="end_time">وقت الانتهاء</string>
+    <string name="video_filters">فلاتر الفيديو</string>
+    <string name="video_saved_successfully">تم حفظ الفيديو بنجاح</string>
+    <string name="failed_to_save_video">فشل حفظ الفيديو</string>
+    <string name="crop_video">اقتصاص الفيديو</string>
+    <string name="drag_to_reorder">اسحب لإعادة الترتيب</string>
+    <string name="option_icon_cd">أيقونة الخيار</string>
 </resources>

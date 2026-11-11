@@ -192,6 +192,12 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
                 R.id.menu_default_orientation -> toggleOrientation(SCREEN_ORIENTATION_UNSPECIFIED)
                 R.id.menu_open_with -> openPath(mUri!!.toString(), true)
                 R.id.menu_share -> shareMediumPath(mUri!!.toString())
+                R.id.menu_edit -> {
+                    val path = if (mUri?.scheme == "file") mUri?.path ?: "" else (getRealPathFromURI(mUri!!) ?: mUri?.path ?: "")
+                    if (path.isNotEmpty()) {
+                        openEditor(path)
+                    }
+                }
                 else -> return@setOnMenuItemClickListener false
             }
             return@setOnMenuItemClickListener true
