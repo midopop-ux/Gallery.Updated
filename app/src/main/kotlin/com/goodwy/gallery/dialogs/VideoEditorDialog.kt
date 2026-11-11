@@ -197,6 +197,7 @@ class VideoEditorDialog(
 
         cropImageView.setImageBitmap(frameBitmap)
         cropImageView.setFixedAspectRatio(false)
+
         val dialog = activity.getAlertDialogBuilder()
             .setView(cropView)
             .create()
@@ -215,6 +216,10 @@ class VideoEditorDialog(
         }
 
         dialog.show()
+        dialog.window?.setLayout(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        )
     }
 
     /**
