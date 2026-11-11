@@ -77,42 +77,66 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <RadioGroup
-            android:id="@+id/videoCropRadioGroup"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <RadioButton
-                android:id="@+id/cropOriginal"
-                android:layout_width="0dp"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFreeInteractiveCrop"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:checked="true"
-                android:text="Original" />
+                android:text="@string/crop"
+                app:icon="@drawable/ic_crop_free"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
-            <RadioButton
-                android:id="@+id/crop1x1"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/videoCropDimensionsLabel"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="1:1" />
+                android:layout_marginTop="4dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp"
+                android:text="Crop: Full (Original dimensions)" />
 
-            <RadioButton
-                android:id="@+id/crop16x9"
-                android:layout_width="0dp"
+            <RadioGroup
+                android:id="@+id/videoCropRadioGroup"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="16:9" />
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
 
-            <RadioButton
-                android:id="@+id/crop9x16"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="9:16" />
-        </RadioGroup>
+                <RadioButton
+                    android:id="@+id/cropOriginal"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checked="true"
+                    android:text="Original" />
+
+                <RadioButton
+                    android:id="@+id/crop1x1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="1:1" />
+
+                <RadioButton
+                    android:id="@+id/crop16x9"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="16:9" />
+
+                <RadioButton
+                    android:id="@+id/crop9x16"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="9:16" />
+            </RadioGroup>
+        </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"

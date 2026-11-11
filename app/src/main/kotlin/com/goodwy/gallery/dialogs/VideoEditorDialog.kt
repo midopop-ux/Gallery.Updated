@@ -2,6 +2,8 @@ package com.goodwy.gallery.dialogs
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.graphics.Bitmap
+import android.graphics.Rect
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
@@ -11,6 +13,9 @@ import android.view.LayoutInflater
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
+import com.canhub.cropper.CropImageView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.TextInputEditText
 import com.goodwy.commons.helpers.ensureBackgroundThread
@@ -30,6 +35,10 @@ class VideoEditorDialog(
     private val videoPath: String,
     private val onSaved: ((newPath: String) -> Unit)? = null
 ) {
+    private var selectedCropRect: Rect? = null
+    private var videoWidth = 0
+    private var videoHeight = 0
+
     init {
         show()
     }
@@ -41,6 +50,8 @@ class VideoEditorDialog(
         try {
             retriever.setDataSource(videoPath)
             durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            videoWidth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+            videoHeight = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
         } catch (_: Exception) {
         } finally {
             try { retriever.release() } catch (_: Exception) {}
@@ -50,10 +61,61 @@ class VideoEditorDialog(
         val startTimeInput = dialogView.findViewById<TextInputEditText>(R.id.videoTrimStart)
         val endTimeInput = dialogView.findViewById<TextInputEditText>(R.id.videoTrimEnd)
         val durationLabel = dialogView.findViewById<TextView>(R.id.videoTotalDurationLabel)
+        val cropDimensionsLabel = dialogView.findViewById<TextView>(R.id.videoCropDimensionsLabel)
+        val btnFreeInteractiveCrop = dialogView.findViewById<MaterialButton>(R.id.btnFreeInteractiveCrop)
 
         durationLabel.text = "Original Duration: ${formatMs(durationMs)}"
         startTimeInput.setText("00:00.000")
         endTimeInput.setText(formatMs(durationMs))
+
+        if (videoWidth > 0 && videoHeight > 0) {
+            cropDimensionsLabel.text = "Crop: Full (${videoWidth}x${videoHeight})"
+        }
+
+        btnFreeInteractiveCrop.setOnClickListener {
+            openInteractiveCropDialog(cropDimensionsLabel)
+        }
+
+        val cropRadioGroup = dialogView.findViewById<RadioGroup>(R.id.videoCropRadioGroup)
+        cropRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (videoWidth <= 0 || videoHeight <= 0) return@setOnCheckedChangeListener
+            selectedCropRect = when (checkedId) {
+                R.id.crop1x1 -> {
+                    val side = minOf(videoWidth, videoHeight)
+                    val left = (videoWidth - side) / 2
+                    val top = (videoHeight - side) / 2
+                    Rect(left, top, left + side, top + side)
+                }
+                R.id.crop16x9 -> {
+                    var targetW = videoWidth
+                    var targetH = (videoWidth * 9) / 16
+                    if (targetH > videoHeight) {
+                        targetH = videoHeight
+                        targetW = (videoHeight * 16) / 9
+                    }
+                    val left = (videoWidth - targetW) / 2
+                    val top = (videoHeight - targetH) / 2
+                    Rect(left, top, left + targetW, top + targetH)
+                }
+                R.id.crop9x16 -> {
+                    var targetW = (videoHeight * 9) / 16
+                    var targetH = videoHeight
+                    if (targetW > videoWidth) {
+                        targetW = videoWidth
+                        targetH = (videoWidth * 16) / 9
+                    }
+                    val left = (videoWidth - targetW) / 2
+                    val top = (videoHeight - targetH) / 2
+                    Rect(left, top, left + targetW, top + targetH)
+                }
+                else -> null
+            }
+            if (selectedCropRect != null) {
+                cropDimensionsLabel.text = "Crop: ${selectedCropRect!!.width()}x${selectedCropRect!!.height()}"
+            } else {
+                cropDimensionsLabel.text = "Crop: Full (${videoWidth}x${videoHeight})"
+            }
+        }
 
         val contrastSlider = dialogView.findViewById<Slider>(R.id.videoContrastSlider)
         val contrastLabel = dialogView.findViewById<TextView>(R.id.videoContrastLabel)
@@ -88,7 +150,7 @@ class VideoEditorDialog(
                     val ext = videoPath.substringAfterLast('.', "mp4")
                     val outputPath = File(parent, "${baseName}_trimmed.$ext").absolutePath
 
-                    val success = performKeyframeTrim(
+                    val success = performSynchronizedTrim(
                         inputPath = videoPath,
                         outputPath = outputPath,
                         startUs = startMs * 1000L,
@@ -112,111 +174,196 @@ class VideoEditorDialog(
         activity.setupDialogStuff(dialogView, builder, R.string.edit)
     }
 
+    private fun openInteractiveCropDialog(dimensionLabel: TextView) {
+        val retriever = MediaMetadataRetriever()
+        var frameBitmap: Bitmap? = null
+        try {
+            retriever.setDataSource(videoPath)
+            frameBitmap = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+        } catch (_: Exception) {
+        } finally {
+            try { retriever.release() } catch (_: Exception) {}
+        }
+
+        if (frameBitmap == null) {
+            activity.toast("Could not extract video frame for cropping")
+            return
+        }
+
+        val cropView = LayoutInflater.from(activity).inflate(R.layout.dialog_interactive_crop, null)
+        val cropImageView = cropView.findViewById<CropImageView>(R.id.videoInteractiveCropImageView)
+        val btnCancel = cropView.findViewById<MaterialButton>(R.id.btnCancelInteractiveCrop)
+        val btnApply = cropView.findViewById<MaterialButton>(R.id.btnApplyInteractiveCrop)
+
+        cropImageView.setImageBitmap(frameBitmap)
+        cropImageView.setFixedAspectRatio(false)
+        val dialog = activity.getAlertDialogBuilder()
+            .setView(cropView)
+            .create()
+
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnApply.setOnClickListener {
+            val rect = cropImageView.cropRect
+            if (rect != null) {
+                selectedCropRect = rect
+                dimensionLabel.text = "Crop: ${rect.width()}x${rect.height()} (Custom Free)"
+            }
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
     /**
-     * Precision trim using MediaExtractor and MediaMuxer.
-     * Ensures video starts from a valid sync frame and PTS offsets are accurately aligned.
+     * Precision synchronized trim for Video and Audio tracks.
+     * Uses independent extractors for audio and video, seeks to synchronization keyframe,
+     * guarantees aligned zero PTS, and stops immediately at the cut-off boundary.
      */
-    private fun performKeyframeTrim(inputPath: String, outputPath: String, startUs: Long, endUs: Long): Boolean {
-        var extractor: MediaExtractor? = null
+    private fun performSynchronizedTrim(
+        inputPath: String,
+        outputPath: String,
+        startUs: Long,
+        endUs: Long
+    ): Boolean {
+        var videoExtractor: MediaExtractor? = null
+        var audioExtractor: MediaExtractor? = null
         var muxer: MediaMuxer? = null
         try {
-            extractor = MediaExtractor()
-            extractor.setDataSource(inputPath)
+            videoExtractor = MediaExtractor()
+            videoExtractor.setDataSource(inputPath)
 
-            val trackCount = extractor.trackCount
-            muxer = MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-            val indexMap = HashMap<Int, Int>(trackCount)
-            var bufferSize = 1024 * 1024
+            audioExtractor = MediaExtractor()
+            audioExtractor.setDataSource(inputPath)
+
             var videoTrackIndex = -1
+            var audioTrackIndex = -1
+            var videoDstIndex = -1
+            var audioDstIndex = -1
+            var videoMaxBufferSize = 1024 * 1024
+            var audioMaxBufferSize = 256 * 1024
 
-            for (i in 0 until trackCount) {
-                val format = extractor.getTrackFormat(i)
+            val totalTracks = videoExtractor.trackCount
+            for (i in 0 until totalTracks) {
+                val format = videoExtractor.getTrackFormat(i)
                 val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
-                if (mime.startsWith("video/")) {
-                    extractor.selectTrack(i)
-                    val dstIndex = muxer.addTrack(format)
-                    indexMap[i] = dstIndex
+                if (mime.startsWith("video/") && videoTrackIndex == -1) {
                     videoTrackIndex = i
                     if (format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) {
-                        val newSize = format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE)
-                        if (newSize > bufferSize) bufferSize = newSize
+                        val size = format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE)
+                        if (size > videoMaxBufferSize) videoMaxBufferSize = size
                     }
-                } else if (mime.startsWith("audio/")) {
-                    extractor.selectTrack(i)
-                    val dstIndex = muxer.addTrack(format)
-                    indexMap[i] = dstIndex
+                } else if (mime.startsWith("audio/") && audioTrackIndex == -1) {
+                    audioTrackIndex = i
                     if (format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) {
-                        val newSize = format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE)
-                        if (newSize > bufferSize) bufferSize = newSize
+                        val size = format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE)
+                        if (size > audioMaxBufferSize) audioMaxBufferSize = size
                     }
                 }
             }
 
+            if (videoTrackIndex == -1 && audioTrackIndex == -1) {
+                return false
+            }
+
+            muxer = MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+
+            if (videoTrackIndex != -1) {
+                videoExtractor.selectTrack(videoTrackIndex)
+                videoDstIndex = muxer.addTrack(videoExtractor.getTrackFormat(videoTrackIndex))
+            }
+
+            if (audioTrackIndex != -1) {
+                audioExtractor.selectTrack(audioTrackIndex)
+                audioDstIndex = muxer.addTrack(audioExtractor.getTrackFormat(audioTrackIndex))
+            }
+
             muxer.start()
 
-            val buffer = ByteBuffer.allocateDirect(bufferSize)
-            val bufferInfo = MediaCodec.BufferInfo()
+            // Find synchronization keyframe for video
+            var effectiveStartUs = startUs
+            if (videoTrackIndex != -1) {
+                videoExtractor.seekTo(startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+                val syncVideoPts = videoExtractor.sampleTime
+                if (syncVideoPts in 0..startUs) {
+                    effectiveStartUs = syncVideoPts
+                }
+            }
 
-            extractor.seekTo(startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-
+            // Write Video track
             var firstVideoPts = -1L
-            var firstAudioPts = -1L
-            var seenFirstVideoKeyframe = false
+            if (videoTrackIndex != -1) {
+                val videoBuffer = ByteBuffer.allocateDirect(videoMaxBufferSize)
+                val videoBufferInfo = MediaCodec.BufferInfo()
 
-            while (true) {
-                val trackIndex = extractor.sampleTrackIndex
-                if (trackIndex < 0) break
-
-                val sampleTime = extractor.sampleTime
-                if (sampleTime > endUs) {
-                    if (trackIndex == videoTrackIndex) {
+                while (true) {
+                    val sampleTime = videoExtractor.sampleTime
+                    if (sampleTime < 0 || sampleTime > endUs) {
                         break
                     }
-                }
 
-                val flags = extractor.sampleFlags
-                val isKeyFrame = (flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0
+                    val flags = videoExtractor.sampleFlags
+                    val isKeyFrame = (flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0
 
-                if (trackIndex == videoTrackIndex) {
-                    if (!seenFirstVideoKeyframe) {
-                        if (isKeyFrame && sampleTime >= startUs - 100_000L) {
-                            seenFirstVideoKeyframe = true
+                    if (firstVideoPts < 0) {
+                        if (isKeyFrame && sampleTime >= effectiveStartUs) {
                             firstVideoPts = sampleTime
-                        } else if (isKeyFrame && sampleTime >= 0) {
-                            seenFirstVideoKeyframe = true
-                            firstVideoPts = sampleTime
+                        } else {
+                            if (!videoExtractor.advance()) break
+                            continue
                         }
                     }
+
+                    videoBufferInfo.offset = 0
+                    videoBufferInfo.size = videoExtractor.readSampleData(videoBuffer, 0)
+                    if (videoBufferInfo.size < 0) break
+
+                    videoBufferInfo.presentationTimeUs = (sampleTime - firstVideoPts).coerceAtLeast(0L)
+                    videoBufferInfo.flags = flags
+
+                    muxer.writeSampleData(videoDstIndex, videoBuffer, videoBufferInfo)
+
+                    if (!videoExtractor.advance()) break
                 }
+            }
 
-                val allowSample = if (trackIndex == videoTrackIndex) {
-                    seenFirstVideoKeyframe && sampleTime <= endUs
-                } else {
-                    sampleTime in startUs..endUs
-                }
+            // Write Audio track aligned with the video's start
+            if (audioTrackIndex != -1) {
+                val audioBuffer = ByteBuffer.allocateDirect(audioMaxBufferSize)
+                val audioBufferInfo = MediaCodec.BufferInfo()
 
-                if (allowSample) {
-                    bufferInfo.offset = 0
-                    bufferInfo.size = extractor.readSampleData(buffer, 0)
-                    if (bufferInfo.size < 0) break
+                val audioStartTarget = if (firstVideoPts >= 0) firstVideoPts else effectiveStartUs
+                audioExtractor.seekTo(audioStartTarget, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
-                    val basePts = if (trackIndex == videoTrackIndex) {
-                        if (firstVideoPts >= 0) firstVideoPts else startUs
-                    } else {
-                        if (firstAudioPts < 0) firstAudioPts = sampleTime
-                        firstAudioPts
+                var firstAudioPts = -1L
+                while (true) {
+                    val sampleTime = audioExtractor.sampleTime
+                    if (sampleTime < 0 || sampleTime > endUs) {
+                        break
                     }
 
-                    bufferInfo.presentationTimeUs = (sampleTime - basePts).coerceAtLeast(0L)
-                    bufferInfo.flags = flags
-
-                    val dstTrack = indexMap[trackIndex]
-                    if (dstTrack != null) {
-                        muxer.writeSampleData(dstTrack, buffer, bufferInfo)
+                    if (sampleTime < audioStartTarget) {
+                        if (!audioExtractor.advance()) break
+                        continue
                     }
-                }
 
-                if (!extractor.advance()) break
+                    if (firstAudioPts < 0) {
+                        firstAudioPts = sampleTime
+                    }
+
+                    audioBufferInfo.offset = 0
+                    audioBufferInfo.size = audioExtractor.readSampleData(audioBuffer, 0)
+                    if (audioBufferInfo.size < 0) break
+
+                    audioBufferInfo.presentationTimeUs = (sampleTime - firstAudioPts).coerceAtLeast(0L)
+                    audioBufferInfo.flags = audioExtractor.sampleFlags
+
+                    muxer.writeSampleData(audioDstIndex, audioBuffer, audioBufferInfo)
+
+                    if (!audioExtractor.advance()) break
+                }
             }
 
             muxer.stop()
@@ -226,7 +373,8 @@ class VideoEditorDialog(
             try { File(outputPath).delete() } catch (_: Exception) {}
             return false
         } finally {
-            try { extractor?.release() } catch (_: Exception) {}
+            try { videoExtractor?.release() } catch (_: Exception) {}
+            try { audioExtractor?.release() } catch (_: Exception) {}
             try { muxer?.release() } catch (_: Exception) {}
         }
     }

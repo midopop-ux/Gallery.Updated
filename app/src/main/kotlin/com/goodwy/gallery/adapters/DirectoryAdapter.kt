@@ -149,10 +149,38 @@ class DirectoryAdapter(
 
             checkHideBtnVisibility(this, selectedPaths)
             checkPinBtnVisibility(this, selectedPaths)
+
+            for (i in 0 until size()) {
+                val item = getItem(i)
+                if (item.itemId != R.id.menu_customize_options) {
+                    if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(activity, "cab_directories", item.itemId)) {
+                        item.isVisible = false
+                    }
+                }
+            }
+        }
+    }
+
+    private fun customizeCabMenu() {
+        val allItems = mutableListOf<com.goodwy.gallery.dialogs.CustomMenuItem>()
+        val menu = actMode?.menu ?: return
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId != R.id.menu_customize_options && item.title != null) {
+                allItems.add(com.goodwy.gallery.dialogs.CustomMenuItem(item.itemId, item.title.toString(), item.icon))
+            }
+        }
+        com.goodwy.gallery.dialogs.MenuCustomizer.showDialog(activity, "cab_directories", allItems) {
+            actMode?.invalidate()
         }
     }
 
     override fun actionItemPressed(id: Int) {
+        if (id == R.id.menu_customize_options) {
+            customizeCabMenu()
+            return
+        }
+
         if (selectedKeys.isEmpty()) {
             return
         }
