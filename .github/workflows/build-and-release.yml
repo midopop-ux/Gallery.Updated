@@ -1,17 +1,22 @@
 name: Build and Release APK
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Type (release or debug)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
 
 permissions:
   contents: write
 
 jobs:
   build:
-    if: "github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')"
     runs-on: ubuntu-latest
 
     steps:
@@ -30,20 +35,22 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build APK (Debug for test branch, Release for others)
+      - name: Build APK
         run: |
-          if [ "${{ github.ref_name }}" = "test" ]; then
-            echo "Building Debug variant for test branch..."
+          BUILD_TYPE="${{ inputs.build_type || 'release' }}"
+          if [ "$BUILD_TYPE" = "debug" ]; then
+            echo "Building FossDebug variant..."
             ./gradlew assembleFossDebug
           else
-            echo "Building Release variant..."
+            echo "Building FossRelease variant (with ProGuard/R8)..."
             ./gradlew assembleFossRelease
           fi
 
       - name: Prepare and Sign APK
         run: |
           mkdir -p output_apks
-          if [ "${{ github.ref_name }}" = "test" ]; then
+          BUILD_TYPE="${{ inputs.build_type || 'release' }}"
+          if [ "$BUILD_TYPE" = "debug" ]; then
             echo "Collecting Debug APKs (already signed by Gradle with debug keystore)..."
             for debug_apk in $(find app/build/outputs/apk/ -name "*debug.apk"); do
               echo "Found debug APK: $debug_apk"
@@ -67,5 +74,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Gallery-${{ github.ref_name }}-APK
+          name: Gallery-${{ inputs.build_type || 'release' }}-APK
           path: output_apks/*.apk
