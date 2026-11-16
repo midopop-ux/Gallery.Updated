@@ -46,29 +46,41 @@ jobs:
             ./gradlew assembleFossRelease
           fi
 
-      - name: Prepare and Sign APK
+      - name: Prepare and Sign APK with Universal Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           mkdir -p output_apks
-          BUILD_TYPE="${{ inputs.build_type || 'release' }}"
-          if [ "$BUILD_TYPE" = "debug" ]; then
-            echo "Collecting Debug APKs (already signed by Gradle with debug keystore)..."
-            for debug_apk in $(find app/build/outputs/apk/ -name "*debug.apk"); do
-              echo "Found debug APK: $debug_apk"
-              cp "$debug_apk" "output_apks/$(basename "$debug_apk")"
-            done
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          echo "Using Build Tools at $BUILD_TOOLS_DIR"
+          
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "[CI] Using universal release keystore from secrets..."
+            echo "$KEYSTORE_B64" | base64 -d > universal-release.keystore
+            KS_FILE="universal-release.keystore"
+            KS_PASS="$KEYSTORE_PASS"
+            KS_ALIAS="$KEY_ALIAS"
+            K_PASS="$KEY_PASS"
           else
-            BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
-            echo "Using Build Tools at $BUILD_TOOLS_DIR"
-            
+            echo "[CI] Fallback to generated keystore..."
             keytool -genkey -v -keystore release-key.jks -alias gallery -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Gallery, OU=Android, O=Goodwy, L=Unknown, S=Unknown, C=US"
-            
-            for unsigned_apk in $(find app/build/outputs/apk/ -name "*unsigned.apk"); do
-              signed_apk="output_apks/$(basename "$unsigned_apk" -unsigned.apk)-signed.apk"
-              echo "Signing $unsigned_apk -> $signed_apk"
-              $BUILD_TOOLS_DIR/apksigner sign --ks release-key.jks --ks-pass pass:android --ks-key-alias gallery --key-pass pass:android --out "$signed_apk" "$unsigned_apk"
-            done
+            KS_FILE="release-key.jks"
+            KS_PASS="android"
+            KS_ALIAS="gallery"
+            K_PASS="android"
           fi
           
+          for target_apk in $(find app/build/outputs/apk/ -name "*.apk"); do
+            signed_apk="output_apks/$(basename "$target_apk" -unsigned.apk)"
+            if [[ "$signed_apk" != *.apk ]]; then signed_apk="${signed_apk}.apk"; fi
+            echo "Signing $target_apk -> $signed_apk with $KS_ALIAS"
+            $BUILD_TOOLS_DIR/apksigner sign --ks "$KS_FILE" --ks-pass pass:"$KS_PASS" --ks-key-alias "$KS_ALIAS" --key-pass pass:"$K_PASS" --out "$signed_apk" "$target_apk"
+          done
+          
+          rm -f universal-release.keystore release-key.jks
           ls -la output_apks/
 
       - name: Upload Artifact
