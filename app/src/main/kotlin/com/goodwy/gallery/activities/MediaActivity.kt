@@ -134,13 +134,12 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         }
 
         binding.btnFreestyleCollageFab.setOnClickListener {
-            val selectedItems = getMediaAdapter()?.getSelectedItems() ?: emptyList()
-            val photoPaths = selectedItems.filterIsInstance<Medium>().filter { !it.isVideo() }.map { it.path }
+            val photoPaths = getMediaAdapter()?.getSelectedPhotoPaths() ?: arrayListOf()
             if (photoPaths.size >= 2) {
                 getMediaAdapter()?.finishActMode()
                 Intent(this, EditActivity::class.java).apply {
                     putExtra(EditActivity.EXTRA_IS_COLLAGE, true)
-                    putStringArrayListExtra(EditActivity.EXTRA_COLLAGE_PATHS, ArrayList(photoPaths))
+                    putStringArrayListExtra(EditActivity.EXTRA_COLLAGE_PATHS, photoPaths)
                     startActivity(this)
                 }
             }

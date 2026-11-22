@@ -10,6 +10,7 @@ import android.graphics.Point
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore

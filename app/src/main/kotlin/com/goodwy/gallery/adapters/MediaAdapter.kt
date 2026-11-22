@@ -719,9 +719,11 @@ class MediaAdapter(
         }
     }
 
-    private fun getSelectedItems() = selectedKeys.mapNotNull { getItemWithKey(it) } as ArrayList<Medium>
+    fun getSelectedItems() = selectedKeys.mapNotNull { getItemWithKey(it) } as ArrayList<Medium>
 
-    private fun getSelectedPaths() = getSelectedItems().map { it.path } as ArrayList<String>
+    fun getSelectedPaths() = getSelectedItems().map { it.path } as ArrayList<String>
+
+    fun getSelectedPhotoPaths() = getSelectedItems().filter { !it.isVideo() }.map { it.path } as ArrayList<String>
 
     private fun getFirstSelectedItemPath() = getItemWithKey(selectedKeys.first())?.path
 
