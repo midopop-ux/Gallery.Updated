@@ -172,5 +172,101 @@
             android:visibility="gone"
             app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions" />
 
+        <!-- Floating Layer Opacity & Actions Bar -->
+        <LinearLayout
+            android:id="@+id/floating_layer_opacity_bar"
+            android:layout_width="0dp"
+            android:layout_height="46dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_floating_layer_bar"
+            android:elevation="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="10dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/floating_opacity_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/opacity"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <SeekBar
+                android:id="@+id/floating_opacity_slider"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="100"
+                android:progressTint="@color/theme_accent_color"
+                android:thumbTint="@android:color/white" />
+
+            <TextView
+                android:id="@+id/floating_opacity_value"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="100%"
+                android:textColor="@color/theme_accent_color"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/floating_btn_bring_forward"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/bring_forward"
+                android:padding="5dp"
+                android:src="@drawable/ic_move_to_top_vector"
+                android:tint="@android:color/white" />
+
+            <ImageView
+                android:id="@+id/floating_btn_send_backward"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/send_backward"
+                android:padding="5dp"
+                android:src="@drawable/ic_move_to_bottom_vector"
+                android:tint="@android:color/white" />
+
+            <ImageView
+                android:id="@+id/floating_btn_duplicate"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/duplicate"
+                android:padding="5dp"
+                android:src="@drawable/ic_duplicate_vector"
+                android:tint="@android:color/white" />
+
+            <ImageView
+                android:id="@+id/floating_btn_delete"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/delete"
+                android:padding="5dp"
+                android:src="@drawable/ic_close_vector"
+                android:tint="#FF5252" />
+
+        </LinearLayout>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

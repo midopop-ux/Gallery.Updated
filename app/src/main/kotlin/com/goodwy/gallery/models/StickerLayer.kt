@@ -8,6 +8,7 @@ import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
 import com.goodwy.gallery.helpers.AdjustParameters
+import com.zomato.photofilters.imageprocessors.Filter
 
 data class StickerLayerSnapshot(
     val originalFullBitmap: Bitmap,
@@ -23,7 +24,8 @@ data class StickerLayerSnapshot(
     val flippedH: Boolean,
     val opacity: Float,
     val adjustParameters: AdjustParameters,
-    val lastCropRect: Rect?
+    val lastCropRect: Rect?,
+    val currentFilter: Filter? = null
 )
 
 class StickerLayer(
@@ -37,6 +39,7 @@ class StickerLayer(
     var baseUnadjustedBitmap: Bitmap = bitmap
     var adjustParameters: AdjustParameters = AdjustParameters()
     var lastCropRect: Rect? = null
+    var currentFilter: Filter? = null
 
     var width: Float = 0f
     var height: Float = 0f
@@ -61,7 +64,8 @@ class StickerLayer(
             flippedH = flippedH,
             opacity = opacity,
             adjustParameters = adjustParameters.copy(),
-            lastCropRect = lastCropRect?.let { Rect(it) }
+            lastCropRect = lastCropRect?.let { Rect(it) },
+            currentFilter = currentFilter
         )
     }
 
@@ -80,6 +84,7 @@ class StickerLayer(
         opacity = snapshot.opacity
         adjustParameters = snapshot.adjustParameters.copy()
         lastCropRect = snapshot.lastCropRect?.let { Rect(it) }
+        currentFilter = snapshot.currentFilter
     }
 
     fun duplicate(offsetX: Float = 40f, offsetY: Float = 40f): StickerLayer {
@@ -88,6 +93,7 @@ class StickerLayer(
         dup.baseUnadjustedBitmap = baseUnadjustedBitmap
         dup.adjustParameters = adjustParameters.copy()
         dup.lastCropRect = lastCropRect?.let { Rect(it) }
+        dup.currentFilter = currentFilter
         dup.width = width
         dup.height = height
         dup.scaleX = scaleX

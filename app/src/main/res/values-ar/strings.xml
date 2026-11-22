@@ -310,4 +310,5 @@
     <string name="bring_forward">تقديم للأمام</string>
     <string name="send_backward">إرسال للخلف</string>
     <string name="duplicate">تكرار</string>
+    <string name="opacity">الشفافية</string>
 </resources>
