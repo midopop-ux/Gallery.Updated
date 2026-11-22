@@ -8,6 +8,12 @@
         android:visible="false"
         app:showAsAction="always" />
     <item
+        android:id="@+id/crop_canvas"
+        android:icon="@drawable/ic_crop"
+        android:title="@string/crop_canvas"
+        android:visible="false"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/undo"
         android:icon="@drawable/ic_undo_gray"
         android:title="@string/edit_with"

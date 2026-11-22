@@ -306,4 +306,8 @@
     <string name="canvas_bg_white">الخلفية: بيضاء</string>
     <string name="canvas_bg_transparent">الخلفية: شفافة</string>
     <string name="canvas_bg_black">الخلفية: سوداء</string>
+    <string name="crop_canvas">قص اللوحة</string>
+    <string name="bring_forward">تقديم للأمام</string>
+    <string name="send_backward">إرسال للخلف</string>
+    <string name="duplicate">تكرار</string>
 </resources>

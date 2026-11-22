@@ -214,8 +214,33 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     private fun setupOptionsMenu() {
         binding.editorToolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
-                R.id.undo -> binding.editorDrawCanvas.undo()
-                R.id.redo -> binding.editorDrawCanvas.redo()
+                R.id.undo -> {
+                    if (isCollageMode) {
+                        binding.freestyleOverlayView.undo()
+                        refreshMenuItems()
+                    } else {
+                        binding.editorDrawCanvas.undo()
+                    }
+                }
+                R.id.redo -> {
+                    if (isCollageMode) {
+                        binding.freestyleOverlayView.redo()
+                        refreshMenuItems()
+                    } else {
+                        binding.editorDrawCanvas.redo()
+                    }
+                }
+                R.id.crop_canvas -> {
+                    val bounds = binding.freestyleOverlayView.getLayersBoundingBox()
+                    if (bounds == null || binding.freestyleOverlayView.layers.isEmpty()) {
+                        toast("No images on canvas")
+                        return@setOnMenuItemClickListener true
+                    }
+                    val croppedCollage = getCollageComposedBitmap(autoCropToBounds = true)
+                    resolveSaveAsPath { path ->
+                        saveBitmapToPath(croppedCollage, path, showSavingToast = true)
+                    }
+                }
                 R.id.save_as -> startSaveFlow(overwrite = false)
                 R.id.overwrite_original -> startSaveFlow(overwrite = true)
                 R.id.edit -> editWith()
@@ -228,10 +253,23 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
     private fun refreshMenuItems() {
         binding.editorToolbar.menu.apply {
-            findItem(R.id.undo).isVisible = binding.editorDrawCanvas.isVisible()
-            findItem(R.id.redo).isVisible = binding.editorDrawCanvas.isVisible()
-            findItem(R.id.save_as).isVisible = isCropIntent || isCollageMode
-            findItem(R.id.overwrite_original).isVisible = !isCropIntent && !binding.defaultImageView.isVisible()
+            val isDrawing = binding.editorDrawCanvas.isVisible()
+            val canUndo = if (isCollageMode) binding.freestyleOverlayView.canUndo() else isDrawing
+            val canRedo = if (isCollageMode) binding.freestyleOverlayView.canRedo() else isDrawing
+
+            findItem(R.id.undo)?.apply {
+                isVisible = isDrawing || isCollageMode
+                isEnabled = canUndo
+                icon?.alpha = if (canUndo) 255 else 100
+            }
+            findItem(R.id.redo)?.apply {
+                isVisible = isDrawing || isCollageMode
+                isEnabled = canRedo
+                icon?.alpha = if (canRedo) 255 else 100
+            }
+            findItem(R.id.crop_canvas)?.isVisible = isCollageMode && binding.freestyleOverlayView.layers.isNotEmpty()
+            findItem(R.id.save_as)?.isVisible = isCropIntent || isCollageMode
+            findItem(R.id.overwrite_original)?.isVisible = !isCropIntent && !binding.defaultImageView.isVisible()
         }
     }
 
@@ -551,9 +589,18 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
         if (croppingStickerLayer != null) {
             val targetLayer = croppingStickerLayer!!
+            targetLayer.lastCropRect = binding.cropImageView.cropRect
             croppingStickerLayer = null
 
-            targetLayer.bitmap = bitmap
+            binding.freestyleOverlayView.recordHistorySnapshot()
+
+            targetLayer.baseUnadjustedBitmap = bitmap
+            if (targetLayer.adjustParameters.isDefault()) {
+                targetLayer.bitmap = bitmap
+            } else {
+                targetLayer.bitmap = ImageAdjustHelper.applyAdjustments(bitmap, targetLayer.adjustParameters)
+            }
+
             val newRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
             targetLayer.height = targetLayer.width / newRatio
 
@@ -783,8 +830,15 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
     private fun bottomAdjustClicked() {
         if (croppingStickerLayer != null) cancelStickerCrop(keepActive = false)
+        if (isCollageMode && binding.freestyleOverlayView.activeLayer == null && binding.freestyleOverlayView.layers.isNotEmpty()) {
+            binding.freestyleOverlayView.activeLayer = binding.freestyleOverlayView.layers.last()
+            binding.freestyleOverlayView.invalidate()
+        }
         currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_ADJUST) PRIMARY_ACTION_NONE else PRIMARY_ACTION_ADJUST
         updatePrimaryActionButtons()
+        if (currPrimaryAction == PRIMARY_ACTION_ADJUST) {
+            updateAdjustSliderUI()
+        }
     }
 
     private fun bottomStickerClicked() {
@@ -1622,10 +1676,52 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         refreshMenuItems()
     }
 
-    private fun setupAdjustControls() {
+    private fun updateAdjustSliderUI() {
         val slider = binding.bottomEditorAdjustActions.adjustSlider
         val propName = binding.bottomEditorAdjustActions.adjustPropertyName
         val propValue = binding.bottomEditorAdjustActions.adjustPropertyValue
+        val tabs = listOf(
+            binding.bottomEditorAdjustActions.adjustTabBrightness,
+            binding.bottomEditorAdjustActions.adjustTabHighlights,
+            binding.bottomEditorAdjustActions.adjustTabShadows,
+            binding.bottomEditorAdjustActions.adjustTabContrast,
+            binding.bottomEditorAdjustActions.adjustTabSaturation,
+            binding.bottomEditorAdjustActions.adjustTabWarmth,
+            binding.bottomEditorAdjustActions.adjustTabVignette
+        )
+
+        val targetParams = if (isCollageMode) (binding.freestyleOverlayView.activeLayer?.adjustParameters ?: adjustParameters) else adjustParameters
+
+        val (name, value) = when (currentAdjustTab) {
+            0 -> Pair("Brightness", targetParams.brightness.toInt())
+            1 -> Pair("Highlights", targetParams.highlights.toInt())
+            2 -> Pair("Shadows", targetParams.shadows.toInt())
+            3 -> Pair("Contrast", targetParams.contrast.toInt())
+            4 -> Pair("Saturation", targetParams.saturation.toInt())
+            5 -> Pair("Warmth", targetParams.warmth.toInt())
+            6 -> Pair("Vignette", targetParams.vignette.toInt())
+            else -> Pair("Adjust", 0)
+        }
+        propName.text = name
+        propValue.text = if (value > 0) "+$value" else "$value"
+
+        if (currentAdjustTab == 6) { // Vignette is 0..100
+            slider.max = 100
+            slider.progress = value
+        } else {
+            slider.max = 200
+            slider.progress = value + 100
+        }
+
+        tabs.forEachIndexed { index, textView ->
+            textView.setBackgroundResource(
+                if (currentAdjustTab == index) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button
+            )
+        }
+    }
+
+    private fun setupAdjustControls() {
+        val slider = binding.bottomEditorAdjustActions.adjustSlider
         val resetBtn = binding.bottomEditorAdjustActions.adjustResetCurrent
 
         val tabBrightness = binding.bottomEditorAdjustActions.adjustTabBrightness
@@ -1636,92 +1732,75 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         val tabWarmth = binding.bottomEditorAdjustActions.adjustTabWarmth
         val tabVignette = binding.bottomEditorAdjustActions.adjustTabVignette
 
-        val tabs = listOf(
-            tabBrightness,
-            tabHighlights,
-            tabShadows,
-            tabContrast,
-            tabSaturation,
-            tabWarmth,
-            tabVignette
-        )
-
-        fun updateSliderUI() {
-            val (name, value) = when (currentAdjustTab) {
-                0 -> Pair("Brightness", adjustParameters.brightness.toInt())
-                1 -> Pair("Highlights", adjustParameters.highlights.toInt())
-                2 -> Pair("Shadows", adjustParameters.shadows.toInt())
-                3 -> Pair("Contrast", adjustParameters.contrast.toInt())
-                4 -> Pair("Saturation", adjustParameters.saturation.toInt())
-                5 -> Pair("Warmth", adjustParameters.warmth.toInt())
-                6 -> Pair("Vignette", adjustParameters.vignette.toInt())
-                else -> Pair("Adjust", 0)
-            }
-            propName.text = name
-            propValue.text = if (value > 0) "+$value" else "$value"
-
-            if (currentAdjustTab == 6) { // Vignette is 0..100
-                slider.max = 100
-                slider.progress = value
-            } else {
-                slider.max = 200
-                slider.progress = value + 100
-            }
-
-            tabs.forEachIndexed { index, textView ->
-                textView.setBackgroundResource(
-                    if (currentAdjustTab == index) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button
-                )
-            }
-        }
-
-        tabBrightness.setOnClickListener { currentAdjustTab = 0; updateSliderUI() }
-        tabHighlights.setOnClickListener { currentAdjustTab = 1; updateSliderUI() }
-        tabShadows.setOnClickListener { currentAdjustTab = 2; updateSliderUI() }
-        tabContrast.setOnClickListener { currentAdjustTab = 3; updateSliderUI() }
-        tabSaturation.setOnClickListener { currentAdjustTab = 4; updateSliderUI() }
-        tabWarmth.setOnClickListener { currentAdjustTab = 5; updateSliderUI() }
-        tabVignette.setOnClickListener { currentAdjustTab = 6; updateSliderUI() }
+        tabBrightness.setOnClickListener { currentAdjustTab = 0; updateAdjustSliderUI() }
+        tabHighlights.setOnClickListener { currentAdjustTab = 1; updateAdjustSliderUI() }
+        tabShadows.setOnClickListener { currentAdjustTab = 2; updateAdjustSliderUI() }
+        tabContrast.setOnClickListener { currentAdjustTab = 3; updateAdjustSliderUI() }
+        tabSaturation.setOnClickListener { currentAdjustTab = 4; updateAdjustSliderUI() }
+        tabWarmth.setOnClickListener { currentAdjustTab = 5; updateAdjustSliderUI() }
+        tabVignette.setOnClickListener { currentAdjustTab = 6; updateAdjustSliderUI() }
 
         resetBtn.setOnClickListener {
+            val targetParams = if (isCollageMode) (binding.freestyleOverlayView.activeLayer?.adjustParameters ?: adjustParameters) else adjustParameters
             when (currentAdjustTab) {
-                0 -> adjustParameters.brightness = 0f
-                1 -> adjustParameters.highlights = 0f
-                2 -> adjustParameters.shadows = 0f
-                3 -> adjustParameters.contrast = 0f
-                4 -> adjustParameters.saturation = 0f
-                5 -> adjustParameters.warmth = 0f
-                6 -> adjustParameters.vignette = 0f
+                0 -> targetParams.brightness = 0f
+                1 -> targetParams.highlights = 0f
+                2 -> targetParams.shadows = 0f
+                3 -> targetParams.contrast = 0f
+                4 -> targetParams.saturation = 0f
+                5 -> targetParams.warmth = 0f
+                6 -> targetParams.vignette = 0f
             }
-            updateSliderUI()
+            updateAdjustSliderUI()
             applyCurrentAdjustments()
+            if (isCollageMode) {
+                binding.freestyleOverlayView.recordHistorySnapshot()
+            }
         }
 
         slider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
+                    val targetParams = if (isCollageMode) (binding.freestyleOverlayView.activeLayer?.adjustParameters ?: adjustParameters) else adjustParameters
                     val value = if (currentAdjustTab == 6) progress.toFloat() else (progress - 100).toFloat()
                     when (currentAdjustTab) {
-                        0 -> adjustParameters.brightness = value
-                        1 -> adjustParameters.highlights = value
-                        2 -> adjustParameters.shadows = value
-                        3 -> adjustParameters.contrast = value
-                        4 -> adjustParameters.saturation = value
-                        5 -> adjustParameters.warmth = value
-                        6 -> adjustParameters.vignette = value
+                        0 -> targetParams.brightness = value
+                        1 -> targetParams.highlights = value
+                        2 -> targetParams.shadows = value
+                        3 -> targetParams.contrast = value
+                        4 -> targetParams.saturation = value
+                        5 -> targetParams.warmth = value
+                        6 -> targetParams.vignette = value
                     }
-                    propValue.text = if (value > 0) "+${value.toInt()}" else "${value.toInt()}"
+                    binding.bottomEditorAdjustActions.adjustPropertyValue.text = if (value > 0) "+${value.toInt()}" else "${value.toInt()}"
                     applyCurrentAdjustments()
                 }
             }
             override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                if (isCollageMode) {
+                    binding.freestyleOverlayView.recordHistorySnapshot()
+                }
+            }
         })
 
-        updateSliderUI()
+        updateAdjustSliderUI()
     }
 
     private fun applyCurrentAdjustments() {
+        val targetLayer = if (isCollageMode) binding.freestyleOverlayView.activeLayer else null
+        if (targetLayer != null) {
+            val params = targetLayer.adjustParameters
+            val base = targetLayer.baseUnadjustedBitmap
+            if (params.isDefault()) {
+                targetLayer.bitmap = base
+            } else {
+                targetLayer.bitmap = ImageAdjustHelper.applyAdjustments(base, params)
+            }
+            binding.freestyleOverlayView.invalidate()
+            return
+        }
+
         val base = filterInitialBitmap ?: return
         if (adjustParameters.isDefault()) {
             val currentFilter = getFiltersAdapter()?.getCurrentFilter()
@@ -1763,10 +1842,15 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
         binding.cropImageView.apply {
             beVisible()
-            setImageBitmap(layer.bitmap)
+            setImageBitmap(layer.originalFullBitmap)
             guidelines = CropImageView.Guidelines.ON
             setFixedAspectRatio(false)
             clearAspectRatio()
+            layer.lastCropRect?.let { prevRect ->
+                post {
+                    cropRect = prevRect
+                }
+            }
         }
 
         binding.bottomEditorCropRotateActions.root.beVisible()
@@ -1804,14 +1888,43 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         updatePrimaryActionButtons()
     }
 
-    private fun getCollageComposedBitmap(): Bitmap {
-        val base = Bitmap.createBitmap(1440, 1920, Bitmap.Config.ARGB_8888)
+    private fun getCollageComposedBitmap(autoCropToBounds: Boolean = false): Bitmap {
+        val overlay = binding.freestyleOverlayView
+        val baseWidth = 1440
+        val baseHeight = 1920
+
+        if (autoCropToBounds && overlay.layers.isNotEmpty()) {
+            val bounds = overlay.getLayersBoundingBox()
+            if (bounds != null && bounds.width() > 10f && bounds.height() > 10f) {
+                val viewW = if (overlay.width > 0) overlay.width.toFloat() else baseWidth.toFloat()
+                val viewH = if (overlay.height > 0) overlay.height.toFloat() else baseHeight.toFloat()
+                val scale = maxOf(baseWidth / viewW, baseHeight / viewH, 1.5f)
+
+                val cropW = (bounds.width() * scale).toInt().coerceAtLeast(100)
+                val cropH = (bounds.height() * scale).toInt().coerceAtLeast(100)
+
+                val cropped = Bitmap.createBitmap(cropW, cropH, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(cropped)
+                if (collageBgColor != Color.TRANSPARENT) {
+                    canvas.drawColor(collageBgColor)
+                }
+                canvas.scale(scale, scale)
+                canvas.translate(-bounds.left, -bounds.top)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+                for (layer in overlay.layers) {
+                    layer.draw(canvas, paint)
+                }
+                return cropped
+            }
+        }
+
+        val base = Bitmap.createBitmap(baseWidth, baseHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(base)
         if (collageBgColor != Color.TRANSPARENT) {
             canvas.drawColor(collageBgColor)
         }
-        if (binding.freestyleOverlayView.layers.isNotEmpty()) {
-            binding.freestyleOverlayView.renderLayersToCanvas(canvas, base.width, base.height)
+        if (overlay.layers.isNotEmpty()) {
+            overlay.renderLayersToCanvas(canvas, base.width, base.height)
         }
         return base
     }
@@ -1821,6 +1934,8 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         val layerControls = binding.bottomEditorStickerActions.stickerLayerControls
         val opacitySlider = binding.bottomEditorStickerActions.stickerOpacitySlider
         val btnBringForward = binding.bottomEditorStickerActions.btnStickerBringForward
+        val btnSendBackward = binding.bottomEditorStickerActions.btnStickerSendBackward
+        val btnDuplicate = binding.bottomEditorStickerActions.btnStickerDuplicate
         val btnCrop = binding.bottomEditorStickerActions.btnStickerCrop
         val btnDelete = binding.bottomEditorStickerActions.btnStickerDelete
         val btnAddPhoto = binding.bottomEditorStickerActions.btnAddStickerPhoto
@@ -1832,6 +1947,17 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             } else {
                 layerControls.beGone()
             }
+            if (currPrimaryAction == PRIMARY_ACTION_ADJUST) {
+                updateAdjustSliderUI()
+            }
+        }
+
+        overlay.onCropRequestedListener = { layer ->
+            startCroppingSticker(layer)
+        }
+
+        overlay.onHistoryChangedListener = {
+            refreshMenuItems()
         }
 
         opacitySlider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
@@ -1842,7 +1968,9 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                 }
             }
             override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                overlay.recordHistorySnapshot()
+            }
         })
 
         btnCrop.setOnClickListener {
@@ -1860,7 +1988,25 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             overlay.bringActiveLayerForward()
         }
         btnBringForward.setOnLongClickListener {
-            toast("Bring Forward")
+            overlay.bringActiveLayerToFront()
+            toast(R.string.bring_forward)
+            true
+        }
+
+        btnSendBackward.setOnClickListener {
+            overlay.sendActiveLayerBackward()
+        }
+        btnSendBackward.setOnLongClickListener {
+            overlay.sendActiveLayerToBack()
+            toast(R.string.send_backward)
+            true
+        }
+
+        btnDuplicate.setOnClickListener {
+            overlay.duplicateActiveLayer()
+        }
+        btnDuplicate.setOnLongClickListener {
+            toast(R.string.duplicate)
             true
         }
 

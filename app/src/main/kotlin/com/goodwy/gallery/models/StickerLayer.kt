@@ -5,7 +5,25 @@ import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PointF
-import android.graphics.RectF
+import android.graphics.Rect
+import com.goodwy.gallery.helpers.AdjustParameters
+
+data class StickerLayerSnapshot(
+    val originalFullBitmap: Bitmap,
+    val baseUnadjustedBitmap: Bitmap,
+    val bitmap: Bitmap,
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float,
+    val scaleX: Float,
+    val scaleY: Float,
+    val rotation: Float,
+    val flippedH: Boolean,
+    val opacity: Float,
+    val adjustParameters: AdjustParameters,
+    val lastCropRect: Rect?
+)
 
 class StickerLayer(
     var bitmap: Bitmap,
@@ -14,6 +32,11 @@ class StickerLayer(
     maxWidth: Float,
     maxHeight: Float
 ) {
+    var originalFullBitmap: Bitmap = bitmap
+    var baseUnadjustedBitmap: Bitmap = bitmap
+    var adjustParameters: AdjustParameters = AdjustParameters()
+    var lastCropRect: Rect? = null
+
     var width: Float = 0f
     var height: Float = 0f
     var scaleX: Float = 1.0f
@@ -21,6 +44,58 @@ class StickerLayer(
     var rotation: Float = 0.0f
     var flippedH: Boolean = false
     var opacity: Float = 1.0f
+
+    fun createSnapshot(): StickerLayerSnapshot {
+        return StickerLayerSnapshot(
+            originalFullBitmap = originalFullBitmap,
+            baseUnadjustedBitmap = baseUnadjustedBitmap,
+            bitmap = bitmap,
+            x = x,
+            y = y,
+            width = width,
+            height = height,
+            scaleX = scaleX,
+            scaleY = scaleY,
+            rotation = rotation,
+            flippedH = flippedH,
+            opacity = opacity,
+            adjustParameters = adjustParameters.copy(),
+            lastCropRect = lastCropRect?.let { Rect(it) }
+        )
+    }
+
+    fun restoreFromSnapshot(snapshot: StickerLayerSnapshot) {
+        originalFullBitmap = snapshot.originalFullBitmap
+        baseUnadjustedBitmap = snapshot.baseUnadjustedBitmap
+        bitmap = snapshot.bitmap
+        x = snapshot.x
+        y = snapshot.y
+        width = snapshot.width
+        height = snapshot.height
+        scaleX = snapshot.scaleX
+        scaleY = snapshot.scaleY
+        rotation = snapshot.rotation
+        flippedH = snapshot.flippedH
+        opacity = snapshot.opacity
+        adjustParameters = snapshot.adjustParameters.copy()
+        lastCropRect = snapshot.lastCropRect?.let { Rect(it) }
+    }
+
+    fun duplicate(offsetX: Float = 40f, offsetY: Float = 40f): StickerLayer {
+        val dup = StickerLayer(bitmap, x + offsetX, y + offsetY, width, height)
+        dup.originalFullBitmap = originalFullBitmap
+        dup.baseUnadjustedBitmap = baseUnadjustedBitmap
+        dup.adjustParameters = adjustParameters.copy()
+        dup.lastCropRect = lastCropRect?.let { Rect(it) }
+        dup.width = width
+        dup.height = height
+        dup.scaleX = scaleX
+        dup.scaleY = scaleY
+        dup.rotation = rotation
+        dup.flippedH = flippedH
+        dup.opacity = opacity
+        return dup
+    }
 
     companion object {
         const val HANDLE_NONE = 0

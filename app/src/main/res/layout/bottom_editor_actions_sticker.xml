@@ -52,14 +52,34 @@
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="6dp"
-            android:src="@drawable/ic_layers_vector"
+            android:src="@drawable/ic_move_to_top_vector"
+            android:tint="@android:color/white" />
+
+        <ImageView
+            android:id="@+id/btn_sticker_send_backward"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="6dp"
+            android:src="@drawable/ic_move_to_bottom_vector"
+            android:tint="@android:color/white" />
+
+        <ImageView
+            android:id="@+id/btn_sticker_duplicate"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="6dp"
+            android:src="@drawable/ic_duplicate_vector"
             android:tint="@android:color/white" />
 
         <ImageView
             android:id="@+id/btn_sticker_delete"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="6dp"
             android:src="@drawable/ic_close_vector"
