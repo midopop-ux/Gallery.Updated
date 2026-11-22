@@ -93,6 +93,11 @@
         android:title="@string/edit"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/cab_freestyle_collage"
+        android:icon="@drawable/ic_collage_vector"
+        android:title="@string/freestyle_collage"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/cab_add_to_favorites"
         android:icon="@drawable/ic_star_outline_vector"
         android:title="@string/add_to_favorites"

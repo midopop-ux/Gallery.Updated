@@ -333,4 +333,8 @@
     <string name="save">Save</string>
     <string name="filter">Filter</string>
     <string name="appbar_scrolling_view_behavior">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
+    <string name="freestyle_collage">FreeStyle Collage</string>
+    <string name="canvas_bg_white">Canvas: White</string>
+    <string name="canvas_bg_transparent">Canvas: Transparent</string>
+    <string name="canvas_bg_black">Canvas: Black</string>
 </resources>

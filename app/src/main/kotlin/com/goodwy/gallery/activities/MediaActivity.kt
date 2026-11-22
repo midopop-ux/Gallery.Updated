@@ -121,7 +121,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
         setupEdgeToEdge(
             padTopSystem = listOf(binding.mediaMenu),
             padBottomImeAndSystem = listOf(view),
-            moveBottomSystem = listOf(binding.mainTopTabsContainer),
+            moveBottomSystem = listOf(binding.mainTopTabsContainer, binding.btnFreestyleCollageFab),
         )
 
         if (config.changeColourTopBar) {
@@ -131,6 +131,19 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 searchMenu = binding.mediaMenu,
                 surfaceColor = useSurfaceColor
             )
+        }
+
+        binding.btnFreestyleCollageFab.setOnClickListener {
+            val selectedItems = getMediaAdapter()?.getSelectedItems() ?: emptyList()
+            val photoPaths = selectedItems.filterIsInstance<Medium>().filter { !it.isVideo() }.map { it.path }
+            if (photoPaths.size >= 2) {
+                getMediaAdapter()?.finishActMode()
+                Intent(this, EditActivity::class.java).apply {
+                    putExtra(EditActivity.EXTRA_IS_COLLAGE, true)
+                    putStringArrayListExtra(EditActivity.EXTRA_COLLAGE_PATHS, ArrayList(photoPaths))
+                    startActivity(this)
+                }
+            }
         }
 
 
@@ -1277,6 +1290,15 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             setResult(RESULT_OK, this)
         }
         finish()
+    }
+
+    override fun onSelectionChanged(selectedItems: List<ThumbnailItem>) {
+        val photoCount = selectedItems.filterIsInstance<Medium>().count { !it.isVideo() }
+        if (photoCount >= 2) {
+            binding.btnFreestyleCollageFab.show()
+        } else {
+            binding.btnFreestyleCollageFab.hide()
+        }
     }
 
     override fun updateMediaGridDecoration(media: ArrayList<ThumbnailItem>) {

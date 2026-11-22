@@ -154,4 +154,21 @@
                 app:tabSelectedTextColor="@android:color/white" />
         </RelativeLayout>
     </RelativeLayout>
+
+    <!-- Floating FreeStyle Collage Action Button when multiple items selected -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btn_freestyle_collage_fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="72dp"
+        android:text="@string/freestyle_collage"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:backgroundTint="@color/theme_accent_color"
+        app:icon="@drawable/ic_collage_vector"
+        app:iconTint="@android:color/white" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

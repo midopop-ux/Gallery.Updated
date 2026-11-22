@@ -41,6 +41,7 @@ import com.goodwy.commons.interfaces.ItemTouchHelperContract
 import com.goodwy.commons.models.FileDirItem
 import com.goodwy.commons.views.MyRecyclerView
 import com.goodwy.gallery.R
+import com.goodwy.gallery.activities.EditActivity
 import com.goodwy.gallery.activities.ViewPagerActivity
 import com.goodwy.gallery.databinding.*
 import com.goodwy.gallery.dialogs.DeleteWithRememberDialog
@@ -153,6 +154,7 @@ class MediaAdapter(
 
     override fun prepareActionMode(menu: Menu) {
         val selectedItems = getSelectedItems()
+        listener?.onSelectionChanged(selectedItems)
         if (selectedItems.isEmpty()) {
             return
         }
@@ -160,6 +162,7 @@ class MediaAdapter(
         val isOneItemSelected = isOneItemSelected()
         val selectedPaths = selectedItems.map { it.path } as ArrayList<String>
         val isInRecycleBin = selectedItems.firstOrNull()?.getIsInRecycleBin() == true
+        val photoCount = selectedItems.filterIsInstance<Medium>().count { !it.isVideo() }
         menu.apply {
             findItem(R.id.cab_rename).isVisible = !isInRecycleBin
             findItem(R.id.cab_add_to_favorites).isVisible = !isInRecycleBin
@@ -168,6 +171,7 @@ class MediaAdapter(
             findItem(R.id.cab_move_to).isVisible = !isInRecycleBin
             findItem(R.id.cab_open_with).isVisible = isOneItemSelected
             findItem(R.id.cab_edit).isVisible = isOneItemSelected
+            findItem(R.id.cab_freestyle_collage)?.isVisible = !isInRecycleBin && photoCount >= 2
             findItem(R.id.cab_set_as).isVisible = isOneItemSelected
             findItem(R.id.cab_resize).isVisible = canResize(selectedItems)
             findItem(R.id.cab_confirm_selection).isVisible = isAGetIntent && allowMultiplePicks && selectedKeys.isNotEmpty()
@@ -217,6 +221,7 @@ class MediaAdapter(
             R.id.cab_properties -> showProperties()
             R.id.cab_rename -> checkMediaManagementAndRename()
             R.id.cab_edit -> editFile()
+            R.id.cab_freestyle_collage -> startCollage()
             R.id.cab_hide -> toggleFileVisibility(true)
             R.id.cab_unhide -> toggleFileVisibility(false)
             R.id.cab_add_to_favorites -> toggleFavorites(true)
@@ -258,6 +263,7 @@ class MediaAdapter(
 
     override fun onActionModeDestroyed() {
         swipeRefreshLayout?.isEnabled = activity.config.enablePullToRefresh
+        listener?.onSelectionChanged(emptyList())
     }
 
     override fun onViewRecycled(holder: ViewHolder) {
@@ -358,6 +364,19 @@ class MediaAdapter(
     private fun editFile() {
         val path = getFirstSelectedItemPath() ?: return
         activity.openEditor(path)
+    }
+
+    private fun startCollage() {
+        val selectedItems = getSelectedItems()
+        val photoPaths = selectedItems.filterIsInstance<Medium>().filter { !it.isVideo() }.map { it.path }
+        if (photoPaths.size >= 2) {
+            finishActMode()
+            Intent(activity, EditActivity::class.java).apply {
+                putExtra(EditActivity.EXTRA_IS_COLLAGE, true)
+                putStringArrayListExtra(EditActivity.EXTRA_COLLAGE_PATHS, ArrayList(photoPaths))
+                activity.startActivity(this)
+            }
+        }
     }
 
     private fun openPath() {

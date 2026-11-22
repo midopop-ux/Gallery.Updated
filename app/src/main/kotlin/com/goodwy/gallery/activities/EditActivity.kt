@@ -87,11 +87,15 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         private const val CROP_ROTATE_ASPECT_RATIO = 1
 
         private const val PICK_STICKER_PHOTO_INTENT = 9912
+        const val EXTRA_IS_COLLAGE = "is_collage"
+        const val EXTRA_COLLAGE_PATHS = "collage_paths"
     }
 
     private lateinit var eyeDropper: EyeDropper
     private lateinit var saveUri: Uri
     private var uri: Uri? = null
+    private var isCollageMode = false
+    private var collageBgColor = Color.WHITE
     private var resizeWidth = 0
     private var resizeHeight = 0
     private var drawColor = 0
@@ -125,6 +129,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         isCropIntent = intent.extras?.get(CROP) == "true"
+        isCollageMode = intent.getBooleanExtra(EXTRA_IS_COLLAGE, false)
         setupEdgeToEdge(
             padBottomSystem = listOf(
                 if (isCropIntent) {
@@ -206,12 +211,17 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         binding.editorToolbar.menu.apply {
             findItem(R.id.undo).isVisible = binding.editorDrawCanvas.isVisible()
             findItem(R.id.redo).isVisible = binding.editorDrawCanvas.isVisible()
-            findItem(R.id.save_as).isVisible = isCropIntent
+            findItem(R.id.save_as).isVisible = isCropIntent || isCollageMode
             findItem(R.id.overwrite_original).isVisible = !isCropIntent && !binding.defaultImageView.isVisible()
         }
     }
 
     private fun initEditActivity() {
+        if (isCollageMode) {
+            initCollageStudio()
+            return
+        }
+
         if (intent.data == null) {
             toast(R.string.invalid_image_path)
             finish()
@@ -464,7 +474,9 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     }
 
     private fun setOldExif() {
-        oldExif = readExif(uri!!)
+        if (!isCollageMode && uri != null) {
+            oldExif = readExif(uri!!)
+        }
     }
 
     private fun startSaveFlow(overwrite: Boolean) {
@@ -525,6 +537,15 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     }
 
     private fun getOriginalBitmap(): Bitmap {
+        if (isCollageMode) {
+            val base = Bitmap.createBitmap(1440, 1920, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(base)
+            if (collageBgColor != Color.TRANSPARENT) {
+                canvas.drawColor(collageBgColor)
+            }
+            return base
+        }
+
         return Glide.with(applicationContext)
             .asBitmap()
             .load(uri)
@@ -547,6 +568,9 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                 }
 
                 if (binding.freestyleOverlayView.layers.isNotEmpty()) {
+                    if (!original.isMutable) {
+                        original = original.copy(Bitmap.Config.ARGB_8888, true)
+                    }
                     val canvas = Canvas(original)
                     binding.freestyleOverlayView.renderLayersToCanvas(canvas, original.width, original.height)
                 }
@@ -1682,12 +1706,23 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         btnAddPhoto.setOnClickListener {
             val pickIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
                 type = "image/*"
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
             }
             try {
                 startActivityForResult(pickIntent, PICK_STICKER_PHOTO_INTENT)
             } catch (e: Exception) {
                 toast(e.message ?: "Failed to open picker")
             }
+        }
+
+        val btnCanvasBgToggle = binding.bottomEditorStickerActions.btnCanvasBgToggle
+        if (isCollageMode) {
+            btnCanvasBgToggle.beVisible()
+            btnCanvasBgToggle.setOnClickListener {
+                cycleCollageBackground()
+            }
+        } else {
+            btnCanvasBgToggle.beGone()
         }
     }
 
@@ -1727,29 +1762,134 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         super.onActivityResult(requestCode, resultCode, resultData)
-        if (requestCode == PICK_STICKER_PHOTO_INTENT && resultCode == RESULT_OK && resultData?.data != null) {
-            val stickerUri = resultData.data!!
-            ensureBackgroundThread {
-                try {
-                    val bitmap = Glide.with(applicationContext)
-                        .asBitmap()
-                        .load(stickerUri)
-                        .submit(1024, 1024)
-                        .get()
+        if (requestCode == PICK_STICKER_PHOTO_INTENT && resultCode == RESULT_OK && resultData != null) {
+            val urisToLoad = ArrayList<Uri>()
+            val clipData = resultData.clipData
+            if (clipData != null) {
+                for (i in 0 until clipData.itemCount) {
+                    val itemUri = clipData.getItemAt(i).uri
+                    if (itemUri != null) {
+                        urisToLoad.add(itemUri)
+                    }
+                }
+            } else if (resultData.data != null) {
+                urisToLoad.add(resultData.data!!)
+            }
 
-                    runOnUiThread {
-                        if (!isFinishing && !isDestroyed) {
-                            binding.freestyleOverlayView.addSticker(bitmap)
-                            loadStickerCanvas()
+            if (urisToLoad.isNotEmpty()) {
+                ensureBackgroundThread {
+                    val loadedBitmaps = ArrayList<Bitmap>()
+                    for (u in urisToLoad) {
+                        try {
+                            val bitmap = Glide.with(applicationContext)
+                                .asBitmap()
+                                .load(u)
+                                .submit(1024, 1024)
+                                .get()
+                            loadedBitmaps.add(bitmap)
+                        } catch (e: Exception) {
+                            runOnUiThread { showErrorToast(e) }
                         }
                     }
-                } catch (e: Exception) {
+
                     runOnUiThread {
-                        showErrorToast(e)
+                        if (!isFinishing && !isDestroyed && loadedBitmaps.isNotEmpty()) {
+                            for (b in loadedBitmaps) {
+                                binding.freestyleOverlayView.addSticker(b)
+                            }
+                            loadStickerCanvas()
+                        }
                     }
                 }
             }
         }
+    }
+
+    private fun initCollageStudio() {
+        val paths = intent.getStringArrayListExtra(EXTRA_COLLAGE_PATHS) ?: arrayListOf()
+        val baseWidth = 1440
+        val baseHeight = 1920
+
+        // Create high-res clean white canvas for collage
+        val blankBitmap = Bitmap.createBitmap(baseWidth, baseHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(blankBitmap)
+        canvas.drawColor(Color.WHITE)
+
+        filterInitialBitmap = blankBitmap
+        binding.defaultImageView.setImageBitmap(blankBitmap)
+        binding.defaultImageView.beVisible()
+        binding.cropImageView.beGone()
+        binding.editorDrawCanvas.beGone()
+        binding.freestyleOverlayView.beVisible()
+
+        // Create dummy save uri in DCIM or Pictures
+        val targetDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString()
+        val destFile = File(targetDir, "Collage_${System.currentTimeMillis()}.jpg")
+        saveUri = Uri.fromFile(destFile)
+        uri = saveUri
+        originalFilePath = destFile.absolutePath
+
+        setupBottomActions()
+        currPrimaryAction = PRIMARY_ACTION_STICKER
+        updatePrimaryActionButtons()
+
+        if (paths.isNotEmpty()) {
+            ensureBackgroundThread {
+                val loaded = ArrayList<Bitmap>()
+                for (p in paths) {
+                    try {
+                        val b = Glide.with(applicationContext)
+                            .asBitmap()
+                            .load(File(p))
+                            .submit(1024, 1024)
+                            .get()
+                        loaded.add(b)
+                    } catch (e: Exception) {
+                        // ignore failed single load
+                    }
+                }
+
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        for (b in loaded) {
+                            binding.freestyleOverlayView.addSticker(b)
+                        }
+                        loadStickerCanvas()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun cycleCollageBackground() {
+        collageBgColor = when (collageBgColor) {
+            Color.WHITE -> Color.TRANSPARENT
+            Color.TRANSPARENT -> Color.BLACK
+            else -> Color.WHITE
+        }
+
+        val btnCanvasBgToggle = binding.bottomEditorStickerActions.btnCanvasBgToggle
+        btnCanvasBgToggle.text = when (collageBgColor) {
+            Color.WHITE -> getString(R.string.canvas_bg_white)
+            Color.TRANSPARENT -> getString(R.string.canvas_bg_transparent)
+            else -> getString(R.string.canvas_bg_black)
+        }
+
+        val blankBitmap = Bitmap.createBitmap(1440, 1920, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(blankBitmap)
+        if (collageBgColor != Color.TRANSPARENT) {
+            canvas.drawColor(collageBgColor)
+        }
+
+        filterInitialBitmap = blankBitmap
+        binding.defaultImageView.setImageBitmap(blankBitmap)
+
+        val targetDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString()
+        val ext = if (collageBgColor == Color.TRANSPARENT) "png" else "jpg"
+        val destFile = File(targetDir, "Collage_${System.currentTimeMillis()}.$ext")
+        saveUri = Uri.fromFile(destFile)
+        uri = saveUri
+        originalFilePath = destFile.absolutePath
     }
 }
 

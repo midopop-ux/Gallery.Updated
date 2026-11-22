@@ -302,4 +302,8 @@
     <string name="crop_video">اقتصاص الفيديو</string>
     <string name="drag_to_reorder">اسحب لإعادة الترتيب</string>
     <string name="option_icon_cd">أيقونة الخيار</string>
+    <string name="freestyle_collage">كولاج حر</string>
+    <string name="canvas_bg_white">الخلفية: بيضاء</string>
+    <string name="canvas_bg_transparent">الخلفية: شفافة</string>
+    <string name="canvas_bg_black">الخلفية: سوداء</string>
 </resources>
