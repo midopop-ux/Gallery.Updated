@@ -242,7 +242,9 @@ class DirectoryAdapter(
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
         if (!activity.isDestroyed) {
-            Glide.with(activity).clear(bindItem(holder.itemView).dirThumbnail)
+            val dirThumbnail = bindItem(holder.itemView).dirThumbnail
+            Glide.with(activity).clear(dirThumbnail)
+            dirThumbnail.scaleType = if (cropThumbnails) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
         }
     }
 
@@ -943,6 +945,12 @@ class DirectoryAdapter(
                         else -> R.drawable.placeholder_square
                     }
                 )
+
+                dirThumbnail.scaleType = if (cropThumbnails) {
+                    ImageView.ScaleType.CENTER_CROP
+                } else {
+                    ImageView.ScaleType.FIT_CENTER
+                }
 
                 activity.loadImage(
                     type = thumbnailType,

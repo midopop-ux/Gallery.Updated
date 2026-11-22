@@ -218,6 +218,9 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                 R.id.undo -> {
                     if (isCollageMode) {
                         binding.freestyleOverlayView.undo()
+                        if (currPrimaryAction == PRIMARY_ACTION_ADJUST) {
+                            updateAdjustSliderUI()
+                        }
                         refreshMenuItems()
                     } else {
                         binding.editorDrawCanvas.undo()
@@ -226,6 +229,9 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                 R.id.redo -> {
                     if (isCollageMode) {
                         binding.freestyleOverlayView.redo()
+                        if (currPrimaryAction == PRIMARY_ACTION_ADJUST) {
+                            updateAdjustSliderUI()
+                        }
                         refreshMenuItems()
                     } else {
                         binding.editorDrawCanvas.redo()
@@ -258,16 +264,10 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             val canUndo = if (isCollageMode) binding.freestyleOverlayView.canUndo() else isDrawing
             val canRedo = if (isCollageMode) binding.freestyleOverlayView.canRedo() else isDrawing
 
-            findItem(R.id.undo)?.apply {
-                isVisible = isDrawing || isCollageMode
-                isEnabled = canUndo
-                icon?.alpha = if (canUndo) 255 else 100
-            }
-            findItem(R.id.redo)?.apply {
-                isVisible = isDrawing || isCollageMode
-                isEnabled = canRedo
-                icon?.alpha = if (canRedo) 255 else 100
-            }
+            findItem(R.id.undo)?.isVisible = isDrawing || isCollageMode
+            findItem(R.id.redo)?.isVisible = isDrawing || isCollageMode
+            toggleUndoVisibility(canUndo)
+            toggleRedoVisibility(canRedo)
             findItem(R.id.crop_canvas)?.isVisible = isCollageMode && binding.freestyleOverlayView.layers.isNotEmpty()
             findItem(R.id.save_as)?.isVisible = isCropIntent || isCollageMode
             findItem(R.id.overwrite_original)?.isVisible = !isCropIntent && !binding.defaultImageView.isVisible()
@@ -1584,21 +1584,23 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     }
 
     override fun toggleUndoVisibility(visible: Boolean) {
-        //bottom_draw_undo.beVisibleIf(visible)
-        binding.editorToolbar.menu.findItem(R.id.undo).isEnabled = visible
-        val drawableId = if (visible) R.drawable.ic_undo_vector else R.drawable.ic_undo_gray
-        val iconColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else Color.WHITE
-        val drawable = resources.getColoredDrawableWithColor(this, drawableId, iconColor)
-        binding.editorToolbar.menu.findItem(R.id.undo).icon = drawable
+        binding.editorToolbar.menu.findItem(R.id.undo)?.apply {
+            isEnabled = visible
+            val drawableId = if (visible) R.drawable.ic_undo_vector else R.drawable.ic_undo_gray
+            val iconColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else Color.WHITE
+            val drawable = resources.getColoredDrawableWithColor(this@EditActivity, drawableId, iconColor)
+            icon = drawable
+        }
     }
 
     override fun toggleRedoVisibility(visible: Boolean) {
-        //bottom_draw_redo.beVisibleIf(visible)
-        binding.editorToolbar.menu.findItem(R.id.redo).isEnabled = visible
-        val drawableId = if (visible) R.drawable.ic_redo_vector else R.drawable.ic_redo_gray
-        val iconColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else Color.WHITE
-        val drawable = resources.getColoredDrawableWithColor(this, drawableId, iconColor)
-        binding.editorToolbar.menu.findItem(R.id.redo).icon = drawable
+        binding.editorToolbar.menu.findItem(R.id.redo)?.apply {
+            isEnabled = visible
+            val drawableId = if (visible) R.drawable.ic_redo_vector else R.drawable.ic_redo_gray
+            val iconColor = if (baseConfig.topAppBarColorIcon) getProperPrimaryColor() else Color.WHITE
+            val drawable = resources.getColoredDrawableWithColor(this@EditActivity, drawableId, iconColor)
+            icon = drawable
+        }
     }
 
     private fun setColor(pickedColor: Int) {
@@ -1742,6 +1744,9 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         tabVignette.setOnClickListener { currentAdjustTab = 6; updateAdjustSliderUI() }
 
         resetBtn.setOnClickListener {
+            if (isCollageMode) {
+                binding.freestyleOverlayView.recordHistorySnapshot()
+            }
             val targetParams = if (isCollageMode) (binding.freestyleOverlayView.activeLayer?.adjustParameters ?: adjustParameters) else adjustParameters
             when (currentAdjustTab) {
                 0 -> targetParams.brightness = 0f
@@ -1754,9 +1759,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             }
             updateAdjustSliderUI()
             applyCurrentAdjustments()
-            if (isCollageMode) {
-                binding.freestyleOverlayView.recordHistorySnapshot()
-            }
+            refreshMenuItems()
         }
 
         slider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
@@ -1777,11 +1780,13 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                     applyCurrentAdjustments()
                 }
             }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
                 if (isCollageMode) {
                     binding.freestyleOverlayView.recordHistorySnapshot()
                 }
+            }
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                refreshMenuItems()
             }
         })
 
@@ -1887,6 +1892,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         binding.freestyleOverlayView.invalidate()
         currPrimaryAction = PRIMARY_ACTION_STICKER
         updatePrimaryActionButtons()
+        refreshMenuItems()
     }
 
     private fun getCollageComposedBitmap(autoCropToBounds: Boolean = false): Bitmap {
@@ -1968,9 +1974,11 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                     overlay.invalidate()
                 }
             }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
                 overlay.recordHistorySnapshot()
+            }
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                refreshMenuItems()
             }
         })
 

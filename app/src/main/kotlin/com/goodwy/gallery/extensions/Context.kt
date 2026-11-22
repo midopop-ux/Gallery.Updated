@@ -848,6 +848,12 @@ fun Context.loadImageBase(
     thumbnailSize: Int = 0,
     onError: (() -> Unit)? = null
 ) {
+    target.scaleType = if (cropThumbnails) {
+        ImageView.ScaleType.CENTER_CROP
+    } else {
+        ImageView.ScaleType.FIT_CENTER
+    }
+
     val priority = when {
         loadHighPriority -> Priority.IMMEDIATE
         highPriority -> Priority.HIGH

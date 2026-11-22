@@ -272,6 +272,7 @@ class MediaAdapter(
             val tmb = holder.itemView.findViewById<ImageView>(R.id.medium_thumbnail)
             if (tmb != null) {
                 Glide.with(activity).clear(tmb)
+                tmb.scaleType = if (cropThumbnails) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_CENTER
             }
         }
     }
@@ -895,6 +896,12 @@ class MediaAdapter(
                     else -> R.drawable.placeholder_square
                 }
             )
+
+            mediumThumbnail.scaleType = if (cropThumbnails) {
+                ImageView.ScaleType.CENTER_CROP
+            } else {
+                ImageView.ScaleType.FIT_CENTER
+            }
 
             activity.loadImage(
                 type = medium.type,

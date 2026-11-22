@@ -16,13 +16,13 @@
     <item
         android:id="@+id/undo"
         android:icon="@drawable/ic_undo_gray"
-        android:title="@string/edit_with"
+        android:title="@string/undo"
         android:enabled="false"
         app:showAsAction="always" />
     <item
         android:id="@+id/redo"
         android:icon="@drawable/ic_redo_gray"
-        android:title="@string/edit_with"
+        android:title="@string/redo"
         android:enabled="false"
         app:showAsAction="always" />
     <item

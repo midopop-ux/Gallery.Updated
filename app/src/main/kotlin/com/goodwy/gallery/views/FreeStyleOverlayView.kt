@@ -64,8 +64,16 @@ class FreeStyleOverlayView @JvmOverloads constructor(
     private var currentMode = MODE_NONE
     private var activeHandle = StickerLayer.HANDLE_NONE
 
-    private var snapThreshold = 40f
+    private var snapThreshold = 35f
     private var stretchFixedEdge = 0f
+    private var stretchStartTouchX = 0f
+    private var stretchStartTouchY = 0f
+    private var stretchStartEdge = 0f
+    private var dragTouchStartX = 0f
+    private var dragTouchStartY = 0f
+    private var dragStartLayerX = 0f
+    private var dragStartLayerY = 0f
+    private var hasVibratedSnap = false
     private var lastRotateHandleTapTime = 0L
 
     private var lastTouchX = 0f
@@ -420,24 +428,36 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                                 currentMode = MODE_STRETCH_TOP
                                 initialScaleY = layer.scaleY
                                 stretchFixedEdge = layer.y + (layer.height * layer.scaleY) / 2f
+                                stretchStartTouchY = touchY
+                                stretchStartEdge = layer.y - (layer.height * layer.scaleY) / 2f
+                                hasVibratedSnap = false
                                 return true
                             }
                             StickerLayer.HANDLE_STRETCH_BOTTOM -> {
                                 currentMode = MODE_STRETCH_BOTTOM
                                 initialScaleY = layer.scaleY
                                 stretchFixedEdge = layer.y - (layer.height * layer.scaleY) / 2f
+                                stretchStartTouchY = touchY
+                                stretchStartEdge = layer.y + (layer.height * layer.scaleY) / 2f
+                                hasVibratedSnap = false
                                 return true
                             }
                             StickerLayer.HANDLE_STRETCH_LEFT -> {
                                 currentMode = MODE_STRETCH_LEFT
                                 initialScaleX = layer.scaleX
                                 stretchFixedEdge = layer.x + (layer.width * layer.scaleX) / 2f
+                                stretchStartTouchX = touchX
+                                stretchStartEdge = layer.x - (layer.width * layer.scaleX) / 2f
+                                hasVibratedSnap = false
                                 return true
                             }
                             StickerLayer.HANDLE_STRETCH_RIGHT -> {
                                 currentMode = MODE_STRETCH_RIGHT
                                 initialScaleX = layer.scaleX
                                 stretchFixedEdge = layer.x - (layer.width * layer.scaleX) / 2f
+                                stretchStartTouchX = touchX
+                                stretchStartEdge = layer.x + (layer.width * layer.scaleX) / 2f
+                                hasVibratedSnap = false
                                 return true
                             }
                         }
@@ -456,6 +476,11 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                 if (touchedLayer != null) {
                     activeLayer = touchedLayer
                     currentMode = MODE_DRAG
+                    dragTouchStartX = touchX
+                    dragTouchStartY = touchY
+                    dragStartLayerX = touchedLayer.x
+                    dragStartLayerY = touchedLayer.y
+                    hasVibratedSnap = false
                     onLayerSelectedListener?.invoke(touchedLayer)
                     invalidate()
                     return true
@@ -480,9 +505,9 @@ class FreeStyleOverlayView @JvmOverloads constructor(
 
                 when (currentMode) {
                     MODE_DRAG -> {
-                        layer.x += dx
-                        layer.y += dy
-                        checkAlignmentSnapping(layer)
+                        val rawX = dragStartLayerX + (touchX - dragTouchStartX)
+                        val rawY = dragStartLayerY + (touchY - dragTouchStartY)
+                        checkAlignmentSnapping(layer, rawX, rawY)
                         invalidate()
                     }
                     MODE_ROTATE -> {
@@ -507,14 +532,15 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                             val ratio = currentDist / initialDist
                             layer.scaleX = (initialScaleX * ratio).coerceIn(0.2f, 5.0f)
                             layer.scaleY = (initialScaleY * ratio).coerceIn(0.2f, 5.0f)
-                            checkAlignmentSnapping(layer)
+                            checkAlignmentSnapping(layer, layer.x, layer.y)
                             invalidate()
                         }
                     }
                     MODE_STRETCH_RIGHT -> {
                         verticalGuideLines.clear()
                         val fixedLeft = stretchFixedEdge
-                        var currentRight = (layer.x + (layer.width * layer.scaleX) / 2f) + dx
+                        val rawRight = stretchStartEdge + (touchX - stretchStartTouchX)
+                        var currentRight = rawRight
                         var snapped = false
 
                         for (other in layers) {
@@ -525,22 +551,22 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                             val otherLeft = other.x - otherHalfW
                             val otherWidth = other.width * other.scaleX
 
-                            if (Math.abs(currentRight - otherRight) < snapThreshold) {
+                            if (Math.abs(rawRight - otherRight) < snapThreshold) {
                                 currentRight = otherRight
                                 addUniqueGuide(verticalGuideLines, otherRight)
                                 snapped = true
                                 break
-                            } else if (Math.abs(currentRight - otherCenterX) < snapThreshold) {
+                            } else if (Math.abs(rawRight - otherCenterX) < snapThreshold) {
                                 currentRight = otherCenterX
                                 addUniqueGuide(verticalGuideLines, otherCenterX)
                                 snapped = true
                                 break
-                            } else if (Math.abs(currentRight - otherLeft) < snapThreshold) {
+                            } else if (Math.abs(rawRight - otherLeft) < snapThreshold) {
                                 currentRight = otherLeft
                                 addUniqueGuide(verticalGuideLines, otherLeft)
                                 snapped = true
                                 break
-                            } else if (Math.abs((currentRight - fixedLeft) - otherWidth) < snapThreshold) {
+                            } else if (Math.abs((rawRight - fixedLeft) - otherWidth) < snapThreshold) {
                                 currentRight = fixedLeft + otherWidth
                                 addUniqueGuide(verticalGuideLines, currentRight)
                                 snapped = true
@@ -551,13 +577,21 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                         val newWidth = (currentRight - fixedLeft).coerceIn(layer.width * 0.15f, layer.width * 5.0f)
                         layer.scaleX = newWidth / layer.width
                         layer.x = fixedLeft + newWidth / 2f
-                        if (snapped) performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (snapped) {
+                            if (!hasVibratedSnap) {
+                                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                hasVibratedSnap = true
+                            }
+                        } else {
+                            hasVibratedSnap = false
+                        }
                         invalidate()
                     }
                     MODE_STRETCH_LEFT -> {
                         verticalGuideLines.clear()
                         val fixedRight = stretchFixedEdge
-                        var currentLeft = (layer.x - (layer.width * layer.scaleX) / 2f) + dx
+                        val rawLeft = stretchStartEdge + (touchX - stretchStartTouchX)
+                        var currentLeft = rawLeft
                         var snapped = false
 
                         for (other in layers) {
@@ -568,22 +602,22 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                             val otherRight = other.x + otherHalfW
                             val otherWidth = other.width * other.scaleX
 
-                            if (Math.abs(currentLeft - otherLeft) < snapThreshold) {
+                            if (Math.abs(rawLeft - otherLeft) < snapThreshold) {
                                 currentLeft = otherLeft
                                 addUniqueGuide(verticalGuideLines, otherLeft)
                                 snapped = true
                                 break
-                            } else if (Math.abs(currentLeft - otherCenterX) < snapThreshold) {
+                            } else if (Math.abs(rawLeft - otherCenterX) < snapThreshold) {
                                 currentLeft = otherCenterX
                                 addUniqueGuide(verticalGuideLines, otherCenterX)
                                 snapped = true
                                 break
-                            } else if (Math.abs(currentLeft - otherRight) < snapThreshold) {
+                            } else if (Math.abs(rawLeft - otherRight) < snapThreshold) {
                                 currentLeft = otherRight
                                 addUniqueGuide(verticalGuideLines, otherRight)
                                 snapped = true
                                 break
-                            } else if (Math.abs((fixedRight - currentLeft) - otherWidth) < snapThreshold) {
+                            } else if (Math.abs((fixedRight - rawLeft) - otherWidth) < snapThreshold) {
                                 currentLeft = fixedRight - otherWidth
                                 addUniqueGuide(verticalGuideLines, currentLeft)
                                 snapped = true
@@ -594,13 +628,21 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                         val newWidth = (fixedRight - currentLeft).coerceIn(layer.width * 0.15f, layer.width * 5.0f)
                         layer.scaleX = newWidth / layer.width
                         layer.x = fixedRight - newWidth / 2f
-                        if (snapped) performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (snapped) {
+                            if (!hasVibratedSnap) {
+                                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                hasVibratedSnap = true
+                            }
+                        } else {
+                            hasVibratedSnap = false
+                        }
                         invalidate()
                     }
                     MODE_STRETCH_BOTTOM -> {
                         horizontalGuideLines.clear()
                         val fixedTop = stretchFixedEdge
-                        var currentBottom = (layer.y + (layer.height * layer.scaleY) / 2f) + dy
+                        val rawBottom = stretchStartEdge + (touchY - stretchStartTouchY)
+                        var currentBottom = rawBottom
                         var snapped = false
 
                         for (other in layers) {
@@ -611,22 +653,22 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                             val otherTop = other.y - otherHalfH
                             val otherHeight = other.height * other.scaleY
 
-                            if (Math.abs(currentBottom - otherBottom) < snapThreshold) {
+                            if (Math.abs(rawBottom - otherBottom) < snapThreshold) {
                                 currentBottom = otherBottom
                                 addUniqueGuide(horizontalGuideLines, otherBottom)
                                 snapped = true
                                 break
-                            } else if (Math.abs(currentBottom - otherCenterY) < snapThreshold) {
+                            } else if (Math.abs(rawBottom - otherCenterY) < snapThreshold) {
                                 currentBottom = otherCenterY
                                 addUniqueGuide(horizontalGuideLines, otherCenterY)
                                 snapped = true
                                 break
-                            } else if (Math.abs(currentBottom - otherTop) < snapThreshold) {
+                            } else if (Math.abs(rawBottom - otherTop) < snapThreshold) {
                                 currentBottom = otherTop
                                 addUniqueGuide(horizontalGuideLines, otherTop)
                                 snapped = true
                                 break
-                            } else if (Math.abs((currentBottom - fixedTop) - otherHeight) < snapThreshold) {
+                            } else if (Math.abs((rawBottom - fixedTop) - otherHeight) < snapThreshold) {
                                 currentBottom = fixedTop + otherHeight
                                 addUniqueGuide(horizontalGuideLines, currentBottom)
                                 snapped = true
@@ -637,13 +679,21 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                         val newHeight = (currentBottom - fixedTop).coerceIn(layer.height * 0.15f, layer.height * 5.0f)
                         layer.scaleY = newHeight / layer.height
                         layer.y = fixedTop + newHeight / 2f
-                        if (snapped) performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (snapped) {
+                            if (!hasVibratedSnap) {
+                                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                hasVibratedSnap = true
+                            }
+                        } else {
+                            hasVibratedSnap = false
+                        }
                         invalidate()
                     }
                     MODE_STRETCH_TOP -> {
                         horizontalGuideLines.clear()
                         val fixedBottom = stretchFixedEdge
-                        var currentTop = (layer.y - (layer.height * layer.scaleY) / 2f) + dy
+                        val rawTop = stretchStartEdge + (touchY - stretchStartTouchY)
+                        var currentTop = rawTop
                         var snapped = false
 
                         for (other in layers) {
@@ -654,22 +704,22 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                             val otherBottom = other.y + otherHalfH
                             val otherHeight = other.height * other.scaleY
 
-                            if (Math.abs(currentTop - otherTop) < snapThreshold) {
+                            if (Math.abs(rawTop - otherTop) < snapThreshold) {
                                 currentTop = otherTop
                                 addUniqueGuide(horizontalGuideLines, otherTop)
                                 snapped = true
                                 break
-                            } else if (Math.abs(currentTop - otherCenterY) < snapThreshold) {
+                            } else if (Math.abs(rawTop - otherCenterY) < snapThreshold) {
                                 currentTop = otherCenterY
                                 addUniqueGuide(horizontalGuideLines, otherCenterY)
                                 snapped = true
                                 break
-                            } else if (Math.abs(currentTop - otherBottom) < snapThreshold) {
+                            } else if (Math.abs(rawTop - otherBottom) < snapThreshold) {
                                 currentTop = otherBottom
                                 addUniqueGuide(horizontalGuideLines, otherBottom)
                                 snapped = true
                                 break
-                            } else if (Math.abs((fixedBottom - currentTop) - otherHeight) < snapThreshold) {
+                            } else if (Math.abs((fixedBottom - rawTop) - otherHeight) < snapThreshold) {
                                 currentTop = fixedBottom - otherHeight
                                 addUniqueGuide(horizontalGuideLines, currentTop)
                                 snapped = true
@@ -680,7 +730,14 @@ class FreeStyleOverlayView @JvmOverloads constructor(
                         val newHeight = (fixedBottom - currentTop).coerceIn(layer.height * 0.15f, layer.height * 5.0f)
                         layer.scaleY = newHeight / layer.height
                         layer.y = fixedBottom - newHeight / 2f
-                        if (snapped) performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (snapped) {
+                            if (!hasVibratedSnap) {
+                                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                hasVibratedSnap = true
+                            }
+                        } else {
+                            hasVibratedSnap = false
+                        }
                         invalidate()
                     }
                 }
@@ -708,6 +765,7 @@ class FreeStyleOverlayView @JvmOverloads constructor(
 
                 currentMode = MODE_NONE
                 activeHandle = StickerLayer.HANDLE_NONE
+                hasVibratedSnap = false
                 verticalGuideLines.clear()
                 horizontalGuideLines.clear()
                 onLayersChangedListener?.invoke()
@@ -718,41 +776,37 @@ class FreeStyleOverlayView @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
 
-    private fun checkAlignmentSnapping(layer: StickerLayer) {
+    private fun checkAlignmentSnapping(layer: StickerLayer, rawX: Float, rawY: Float) {
         verticalGuideLines.clear()
         horizontalGuideLines.clear()
 
         val halfW = (layer.width * layer.scaleX) / 2f
         val halfH = (layer.height * layer.scaleY) / 2f
 
-        val targetLeft = layer.x - halfW
-        val targetRight = layer.x + halfW
-        val targetTop = layer.y - halfH
-        val targetBottom = layer.y + halfH
+        val targetLeft = rawX - halfW
+        val targetRight = rawX + halfW
+        val targetTop = rawY - halfH
+        val targetBottom = rawY + halfH
 
         var bestDiffX = snapThreshold
         var bestDiffY = snapThreshold
-        var snapXOffset = 0f
-        var snapYOffset = 0f
-        var snappedX = false
-        var snappedY = false
+        var snappedCenterX: Float? = null
+        var snappedCenterY: Float? = null
 
         // 1. Canvas Center
         val canvasCenterX = width / 2f
         val canvasCenterY = height / 2f
 
-        val dCenterX = Math.abs(layer.x - canvasCenterX)
+        val dCenterX = Math.abs(rawX - canvasCenterX)
         if (dCenterX < bestDiffX) {
             bestDiffX = dCenterX
-            snapXOffset = canvasCenterX - layer.x
-            snappedX = true
+            snappedCenterX = canvasCenterX
         }
 
-        val dCenterY = Math.abs(layer.y - canvasCenterY)
+        val dCenterY = Math.abs(rawY - canvasCenterY)
         if (dCenterY < bestDiffY) {
             bestDiffY = dCenterY
-            snapYOffset = canvasCenterY - layer.y
-            snappedY = true
+            snappedCenterY = canvasCenterY
         }
 
         // 2. Align with all other layers
@@ -767,72 +821,62 @@ class FreeStyleOverlayView @JvmOverloads constructor(
             val otherBottom = other.y + otherHalfH
 
             // X-Alignments: Center, Left-Left, Right-Right, Left-Right, Right-Left
-            val dcX = Math.abs(layer.x - other.x)
+            val dcX = Math.abs(rawX - other.x)
             if (dcX < bestDiffX) {
                 bestDiffX = dcX
-                snapXOffset = other.x - layer.x
-                snappedX = true
+                snappedCenterX = other.x
             }
             val dll = Math.abs(targetLeft - otherLeft)
             if (dll < bestDiffX) {
                 bestDiffX = dll
-                snapXOffset = otherLeft - targetLeft
-                snappedX = true
+                snappedCenterX = otherLeft + halfW
             }
             val drr = Math.abs(targetRight - otherRight)
             if (drr < bestDiffX) {
                 bestDiffX = drr
-                snapXOffset = otherRight - targetRight
-                snappedX = true
+                snappedCenterX = otherRight - halfW
             }
             val dlr = Math.abs(targetLeft - otherRight)
             if (dlr < bestDiffX) {
                 bestDiffX = dlr
-                snapXOffset = otherRight - targetLeft
-                snappedX = true
+                snappedCenterX = otherRight + halfW
             }
             val drl = Math.abs(targetRight - otherLeft)
             if (drl < bestDiffX) {
                 bestDiffX = drl
-                snapXOffset = otherLeft - targetRight
-                snappedX = true
+                snappedCenterX = otherLeft - halfW
             }
 
             // Y-Alignments: Center, Top-Top, Bottom-Bottom, Top-Bottom, Bottom-Top
-            val dcY = Math.abs(layer.y - other.y)
+            val dcY = Math.abs(rawY - other.y)
             if (dcY < bestDiffY) {
                 bestDiffY = dcY
-                snapYOffset = other.y - layer.y
-                snappedY = true
+                snappedCenterY = other.y
             }
             val dtt = Math.abs(targetTop - otherTop)
             if (dtt < bestDiffY) {
                 bestDiffY = dtt
-                snapYOffset = otherTop - targetTop
-                snappedY = true
+                snappedCenterY = otherTop + halfH
             }
             val dbb = Math.abs(targetBottom - otherBottom)
             if (dbb < bestDiffY) {
                 bestDiffY = dbb
-                snapYOffset = otherBottom - targetBottom
-                snappedY = true
+                snappedCenterY = otherBottom - halfH
             }
             val dtb = Math.abs(targetTop - otherBottom)
             if (dtb < bestDiffY) {
                 bestDiffY = dtb
-                snapYOffset = otherBottom - targetTop
-                snappedY = true
+                snappedCenterY = otherBottom + halfH
             }
             val dbt = Math.abs(targetBottom - otherTop)
             if (dbt < bestDiffY) {
                 bestDiffY = dbt
-                snapYOffset = otherTop - targetBottom
-                snappedY = true
+                snappedCenterY = otherTop - halfH
             }
         }
 
-        if (snappedX) layer.x += snapXOffset
-        if (snappedY) layer.y += snapYOffset
+        layer.x = snappedCenterX ?: rawX
+        layer.y = snappedCenterY ?: rawY
 
         // Add guidelines
         val finalLeft = layer.x - halfW
@@ -840,33 +884,43 @@ class FreeStyleOverlayView @JvmOverloads constructor(
         val finalTop = layer.y - halfH
         val finalBottom = layer.y + halfH
 
-        if (Math.abs(layer.x - canvasCenterX) < 1.5f) addUniqueGuide(verticalGuideLines, canvasCenterX)
-        if (Math.abs(layer.y - canvasCenterY) < 1.5f) addUniqueGuide(horizontalGuideLines, canvasCenterY)
-
-        for (other in layers) {
-            if (other === layer) continue
-            val otherHalfW = (other.width * other.scaleX) / 2f
-            val otherHalfH = (other.height * other.scaleY) / 2f
-            val otherLeft = other.x - otherHalfW
-            val otherRight = other.x + otherHalfW
-            val otherTop = other.y - otherHalfH
-            val otherBottom = other.y + otherHalfH
-
-            if (Math.abs(layer.x - other.x) < 1.5f) addUniqueGuide(verticalGuideLines, other.x)
-            if (Math.abs(finalLeft - otherLeft) < 1.5f) addUniqueGuide(verticalGuideLines, otherLeft)
-            if (Math.abs(finalRight - otherRight) < 1.5f) addUniqueGuide(verticalGuideLines, otherRight)
-            if (Math.abs(finalLeft - otherRight) < 1.5f) addUniqueGuide(verticalGuideLines, otherRight)
-            if (Math.abs(finalRight - otherLeft) < 1.5f) addUniqueGuide(verticalGuideLines, otherLeft)
-
-            if (Math.abs(layer.y - other.y) < 1.5f) addUniqueGuide(horizontalGuideLines, other.y)
-            if (Math.abs(finalTop - otherTop) < 1.5f) addUniqueGuide(horizontalGuideLines, otherTop)
-            if (Math.abs(finalBottom - otherBottom) < 1.5f) addUniqueGuide(horizontalGuideLines, otherBottom)
-            if (Math.abs(finalTop - otherBottom) < 1.5f) addUniqueGuide(horizontalGuideLines, otherBottom)
-            if (Math.abs(finalBottom - otherTop) < 1.5f) addUniqueGuide(horizontalGuideLines, otherTop)
+        if (snappedCenterX != null) {
+            if (Math.abs(layer.x - canvasCenterX) < 1.5f) addUniqueGuide(verticalGuideLines, canvasCenterX)
+            for (other in layers) {
+                if (other === layer) continue
+                val otherHalfW = (other.width * other.scaleX) / 2f
+                val otherLeft = other.x - otherHalfW
+                val otherRight = other.x + otherHalfW
+                if (Math.abs(layer.x - other.x) < 1.5f) addUniqueGuide(verticalGuideLines, other.x)
+                if (Math.abs(finalLeft - otherLeft) < 1.5f) addUniqueGuide(verticalGuideLines, otherLeft)
+                if (Math.abs(finalRight - otherRight) < 1.5f) addUniqueGuide(verticalGuideLines, otherRight)
+                if (Math.abs(finalLeft - otherRight) < 1.5f) addUniqueGuide(verticalGuideLines, otherRight)
+                if (Math.abs(finalRight - otherLeft) < 1.5f) addUniqueGuide(verticalGuideLines, otherLeft)
+            }
         }
 
-        if (snappedX || snappedY) {
-            performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        if (snappedCenterY != null) {
+            if (Math.abs(layer.y - canvasCenterY) < 1.5f) addUniqueGuide(horizontalGuideLines, canvasCenterY)
+            for (other in layers) {
+                if (other === layer) continue
+                val otherHalfH = (other.height * other.scaleY) / 2f
+                val otherTop = other.y - otherHalfH
+                val otherBottom = other.y + otherHalfH
+                if (Math.abs(layer.y - other.y) < 1.5f) addUniqueGuide(horizontalGuideLines, other.y)
+                if (Math.abs(finalTop - otherTop) < 1.5f) addUniqueGuide(horizontalGuideLines, otherTop)
+                if (Math.abs(finalBottom - otherBottom) < 1.5f) addUniqueGuide(horizontalGuideLines, otherBottom)
+                if (Math.abs(finalTop - otherBottom) < 1.5f) addUniqueGuide(horizontalGuideLines, otherBottom)
+                if (Math.abs(finalBottom - otherTop) < 1.5f) addUniqueGuide(horizontalGuideLines, otherTop)
+            }
+        }
+
+        if (snappedCenterX != null || snappedCenterY != null) {
+            if (!hasVibratedSnap) {
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                hasVibratedSnap = true
+            }
+        } else {
+            hasVibratedSnap = false
         }
     }
 
