@@ -2,23 +2,31 @@ package com.goodwy.gallery.helpers
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
+import android.graphics.RadialGradient
+import android.graphics.Shader
 
 data class AdjustParameters(
-    var brightness: Float = 0f,   // -100 to 100 (0 default)
-    var contrast: Float = 0f,     // -100 to 100 (0 default)
-    var saturation: Float = 0f,   // -100 to 100 (0 default)
-    var warmth: Float = 0f,       // -100 to 100 (0 default)
-    var vignette: Float = 0f      // 0 to 100 (0 default)
+    var brightness: Float = 0f,   // -100 to 100
+    var highlights: Float = 0f,   // -100 to 100 (Selective bright areas)
+    var shadows: Float = 0f,      // -100 to 100 (Selective dark areas)
+    var contrast: Float = 0f,     // -100 to 100
+    var saturation: Float = 0f,   // -100 to 100
+    var warmth: Float = 0f,       // -100 to 100
+    var vignette: Float = 0f      // 0 to 100
 ) {
     fun isDefault(): Boolean {
-        return brightness == 0f && contrast == 0f && saturation == 0f && warmth == 0f && vignette == 0f
+        return brightness == 0f && highlights == 0f && shadows == 0f &&
+                contrast == 0f && saturation == 0f && warmth == 0f && vignette == 0f
     }
 
     fun reset() {
         brightness = 0f
+        highlights = 0f
+        shadows = 0f
         contrast = 0f
         saturation = 0f
         warmth = 0f
@@ -31,8 +39,7 @@ object ImageAdjustHelper {
     fun createAdjustColorMatrix(params: AdjustParameters): ColorMatrix {
         val totalMatrix = ColorMatrix()
 
-        // 1. Brightness: add scale to rgb offsets
-        // brightness: -100..100 -> offset: -255..255
+        // 1. Overall Brightness
         val bOffset = (params.brightness / 100f) * 255f
         if (bOffset != 0f) {
             val bMatrix = ColorMatrix(
@@ -46,8 +53,7 @@ object ImageAdjustHelper {
             totalMatrix.postConcat(bMatrix)
         }
 
-        // 2. Contrast:
-        // contrast: -100..100 -> scale: 0..2.0
+        // 2. Contrast
         if (params.contrast != 0f) {
             val cScale = if (params.contrast > 0) {
                 1f + (params.contrast / 100f) * 1.5f
@@ -66,8 +72,7 @@ object ImageAdjustHelper {
             totalMatrix.postConcat(cMatrix)
         }
 
-        // 3. Saturation:
-        // saturation: -100..100 -> sat: 0..2.0
+        // 3. Saturation
         if (params.saturation != 0f) {
             val sScale = if (params.saturation > 0) {
                 1f + (params.saturation / 100f) * 1.0f
@@ -79,11 +84,9 @@ object ImageAdjustHelper {
             totalMatrix.postConcat(sMatrix)
         }
 
-        // 4. Warmth / Temperature:
-        // warmth > 0 -> more red, less blue (warm)
-        // warmth < 0 -> more blue, less red (cool)
+        // 4. Warmth / Temperature
         if (params.warmth != 0f) {
-            val w = params.warmth / 100f // -1..1
+            val w = params.warmth / 100f
             val rScale = 1f + (w * 0.2f)
             val bScale = 1f - (w * 0.2f)
             val wMatrix = ColorMatrix(
@@ -100,14 +103,83 @@ object ImageAdjustHelper {
         return totalMatrix
     }
 
+    /**
+     * Applies color matrix plus selective highlight/shadow curves and smooth vignette.
+     */
     fun applyAdjustments(source: Bitmap, params: AdjustParameters): Bitmap {
         if (params.isDefault()) return source
-        val result = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        val width = source.width
+        val height = source.height
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(result)
+
+        // 1. First pass: hardware color matrix (Brightness, Contrast, Saturation, Warmth)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         val matrix = createAdjustColorMatrix(params)
         paint.colorFilter = ColorMatrixColorFilter(matrix)
         canvas.drawBitmap(source, 0f, 0f, paint)
+
+        // 2. Second pass: Selective Tone Curve for Highlights & Shadows
+        if (params.highlights != 0f || params.shadows != 0f) {
+            applySelectiveTone(result, params.highlights, params.shadows)
+        }
+
+        // 3. Third pass: Vignette overlay
+        if (params.vignette > 0f) {
+            applyVignette(canvas, width, height, params.vignette)
+        }
+
         return result
+    }
+
+    private fun applySelectiveTone(bitmap: Bitmap, highlights: Float, shadows: Float) {
+        val w = bitmap.width
+        val h = bitmap.height
+        val pixels = IntArray(w * h)
+        bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+
+        val hlFactor = highlights / 100f
+        val shFactor = shadows / 100f
+
+        for (i in pixels.indices) {
+            val color = pixels[i]
+            val a = (color ushr 24) and 0xFF
+            var r = (color ushr 16) and 0xFF
+            var g = (color ushr 8) and 0xFF
+            var b = color and 0xFF
+
+            // Calculate perceptual luminance
+            val lum = (0.299f * r + 0.587f * g + 0.114f * b) / 255f
+
+            // Shadow weight peaks at dark tones (lum = 0..0.5)
+            val shadowWeight = (1.0f - lum).coerceIn(0f, 1f)
+            // Highlight weight peaks at light tones (lum = 0.5..1.0)
+            val highlightWeight = lum.coerceIn(0f, 1f)
+
+            val delta = (shFactor * shadowWeight * 50f) + (hlFactor * highlightWeight * 50f)
+
+            r = (r + delta).toInt().coerceIn(0, 255)
+            g = (g + delta).toInt().coerceIn(0, 255)
+            b = (b + delta).toInt().coerceIn(0, 255)
+
+            pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
+        }
+        bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
+    }
+
+    private fun applyVignette(canvas: Canvas, width: Int, height: Int, vignetteAmount: Float) {
+        val radius = Math.hypot(width.toDouble() / 2, height.toDouble() / 2).toFloat()
+        val cx = width / 2f
+        val cy = height / 2f
+        val maxAlpha = ((vignetteAmount / 100f) * 190).toInt().coerceIn(0, 255)
+
+        val colors = intArrayOf(Color.TRANSPARENT, Color.argb(maxAlpha, 0, 0, 0))
+        val stops = floatArrayOf(0.45f, 1.0f)
+
+        val gradient = RadialGradient(cx, cy, radius, colors, stops, Shader.TileMode.CLAMP)
+        val vPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = gradient
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), vPaint)
     }
 }

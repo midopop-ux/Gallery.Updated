@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/bottom_editor_adjust_wrapper"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -25,7 +24,7 @@
             android:textColor="@android:color/white"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:text="@string/filter" />
+            android:text="Brightness" />
 
         <TextView
             android:id="@+id/adjust_property_value"
@@ -59,7 +58,7 @@
         android:progressTint="@color/theme_accent_color"
         android:thumbTint="@android:color/white" />
 
-    <!-- Horizontal Category Selector: Brightness, Contrast, Saturation, Warmth -->
+    <!-- Horizontal Category Selector: Brightness, Highlights, Shadows, Contrast, Saturation, Warmth, Vignette -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -84,6 +83,32 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
                 android:text="Brightness"
+                android:textColor="@android:color/white"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/adjust_tab_highlights"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_pill_button"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="Highlights"
+                android:textColor="@android:color/white"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/adjust_tab_shadows"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_pill_button"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="Shadows"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 
@@ -117,11 +142,24 @@
                 android:id="@+id/adjust_tab_warmth"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_pill_button"
                 android:gravity="center"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
                 android:text="Warmth"
+                android:textColor="@android:color/white"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/adjust_tab_vignette"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_pill_button"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="Vignette"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 

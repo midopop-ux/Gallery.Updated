@@ -107,7 +107,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     private var filterInitialBitmap: Bitmap? = null
     private var adjustedPreviewBitmap: Bitmap? = null
     private val adjustParameters = AdjustParameters()
-    private var currentAdjustTab = 0 // 0: Brightness, 1: Contrast, 2: Saturation, 3: Warmth
+    private var currentAdjustTab = 0 // 0: Brightness, 1: Highlights, 2: Shadows, 3: Contrast...
     private var originalUri: Uri? = null
     private var isEraserOn = false
     private var isEyeDropperOn = false
@@ -1527,39 +1527,69 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         val resetBtn = binding.bottomEditorAdjustActions.adjustResetCurrent
 
         val tabBrightness = binding.bottomEditorAdjustActions.adjustTabBrightness
+        val tabHighlights = binding.bottomEditorAdjustActions.adjustTabHighlights
+        val tabShadows = binding.bottomEditorAdjustActions.adjustTabShadows
         val tabContrast = binding.bottomEditorAdjustActions.adjustTabContrast
         val tabSaturation = binding.bottomEditorAdjustActions.adjustTabSaturation
         val tabWarmth = binding.bottomEditorAdjustActions.adjustTabWarmth
+        val tabVignette = binding.bottomEditorAdjustActions.adjustTabVignette
+
+        val tabs = listOf(
+            tabBrightness,
+            tabHighlights,
+            tabShadows,
+            tabContrast,
+            tabSaturation,
+            tabWarmth,
+            tabVignette
+        )
 
         fun updateSliderUI() {
             val (name, value) = when (currentAdjustTab) {
                 0 -> Pair("Brightness", adjustParameters.brightness.toInt())
-                1 -> Pair("Contrast", adjustParameters.contrast.toInt())
-                2 -> Pair("Saturation", adjustParameters.saturation.toInt())
-                3 -> Pair("Warmth", adjustParameters.warmth.toInt())
+                1 -> Pair("Highlights", adjustParameters.highlights.toInt())
+                2 -> Pair("Shadows", adjustParameters.shadows.toInt())
+                3 -> Pair("Contrast", adjustParameters.contrast.toInt())
+                4 -> Pair("Saturation", adjustParameters.saturation.toInt())
+                5 -> Pair("Warmth", adjustParameters.warmth.toInt())
+                6 -> Pair("Vignette", adjustParameters.vignette.toInt())
                 else -> Pair("Adjust", 0)
             }
             propName.text = name
             propValue.text = if (value > 0) "+$value" else "$value"
-            slider.progress = value + 100
 
-            tabBrightness.setBackgroundResource(if (currentAdjustTab == 0) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button)
-            tabContrast.setBackgroundResource(if (currentAdjustTab == 1) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button)
-            tabSaturation.setBackgroundResource(if (currentAdjustTab == 2) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button)
-            tabWarmth.setBackgroundResource(if (currentAdjustTab == 3) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button)
+            if (currentAdjustTab == 6) { // Vignette is 0..100
+                slider.max = 100
+                slider.progress = value
+            } else {
+                slider.max = 200
+                slider.progress = value + 100
+            }
+
+            tabs.forEachIndexed { index, textView ->
+                textView.setBackgroundResource(
+                    if (currentAdjustTab == index) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button
+                )
+            }
         }
 
         tabBrightness.setOnClickListener { currentAdjustTab = 0; updateSliderUI() }
-        tabContrast.setOnClickListener { currentAdjustTab = 1; updateSliderUI() }
-        tabSaturation.setOnClickListener { currentAdjustTab = 2; updateSliderUI() }
-        tabWarmth.setOnClickListener { currentAdjustTab = 3; updateSliderUI() }
+        tabHighlights.setOnClickListener { currentAdjustTab = 1; updateSliderUI() }
+        tabShadows.setOnClickListener { currentAdjustTab = 2; updateSliderUI() }
+        tabContrast.setOnClickListener { currentAdjustTab = 3; updateSliderUI() }
+        tabSaturation.setOnClickListener { currentAdjustTab = 4; updateSliderUI() }
+        tabWarmth.setOnClickListener { currentAdjustTab = 5; updateSliderUI() }
+        tabVignette.setOnClickListener { currentAdjustTab = 6; updateSliderUI() }
 
         resetBtn.setOnClickListener {
             when (currentAdjustTab) {
                 0 -> adjustParameters.brightness = 0f
-                1 -> adjustParameters.contrast = 0f
-                2 -> adjustParameters.saturation = 0f
-                3 -> adjustParameters.warmth = 0f
+                1 -> adjustParameters.highlights = 0f
+                2 -> adjustParameters.shadows = 0f
+                3 -> adjustParameters.contrast = 0f
+                4 -> adjustParameters.saturation = 0f
+                5 -> adjustParameters.warmth = 0f
+                6 -> adjustParameters.vignette = 0f
             }
             updateSliderUI()
             applyCurrentAdjustments()
@@ -1568,12 +1598,15 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         slider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    val value = (progress - 100).toFloat()
+                    val value = if (currentAdjustTab == 6) progress.toFloat() else (progress - 100).toFloat()
                     when (currentAdjustTab) {
                         0 -> adjustParameters.brightness = value
-                        1 -> adjustParameters.contrast = value
-                        2 -> adjustParameters.saturation = value
-                        3 -> adjustParameters.warmth = value
+                        1 -> adjustParameters.highlights = value
+                        2 -> adjustParameters.shadows = value
+                        3 -> adjustParameters.contrast = value
+                        4 -> adjustParameters.saturation = value
+                        5 -> adjustParameters.warmth = value
+                        6 -> adjustParameters.vignette = value
                     }
                     propValue.text = if (value > 0) "+${value.toInt()}" else "${value.toInt()}"
                     applyCurrentAdjustments()
