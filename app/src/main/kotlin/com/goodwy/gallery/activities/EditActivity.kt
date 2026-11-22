@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Point
 import android.graphics.drawable.GradientDrawable
@@ -1599,7 +1600,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             val currentFilter = getFiltersAdapter()?.getCurrentFilter()
             val filteredBase = if (currentFilter != null && currentFilter.filter.name != getString(com.goodwy.commons.R.string.none)) {
                 val copy = Bitmap.createBitmap(base)
-                currentFilter.filter.processFilter(copy)
+                currentFilter.filter.processFilter(copy) ?: base
             } else {
                 base
             }
