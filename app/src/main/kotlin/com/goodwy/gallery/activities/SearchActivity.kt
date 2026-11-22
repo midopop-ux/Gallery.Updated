@@ -223,10 +223,10 @@ class SearchActivity : SimpleActivity(), MediaOperationsListener {
             return
         }
 
-        when (config.videoPlayerType) {
-            VIDEO_PLAYER_SYSTEM -> openPath(path = path, forceChooser = false)
-            VIDEO_PLAYER_APP -> if (config.gestureVideoPlayer) launchGesturePlayer(path) else openInViewPager(path)
-            else -> openInViewPager(path) // unreachable by design
+        if (config.gestureVideoPlayer) {
+            launchGesturePlayer(path)
+        } else {
+            openInViewPager(path)
         }
     }
 

@@ -109,8 +109,19 @@ fun Activity.openEditor(path: String, forceChooser: Boolean = false) {
             putExtra("video_path", newPath)
         }
         startActivity(intent)
+    } else if (forceChooser) {
+        openEditorIntent(newPath, true, BuildConfig.APPLICATION_ID)
     } else {
-        openEditorIntent(newPath, forceChooser, BuildConfig.APPLICATION_ID)
+        ensureBackgroundThread {
+            val uri = getFinalUriFromPath(newPath, BuildConfig.APPLICATION_ID) ?: return@ensureBackgroundThread
+            runOnUiThread {
+                Intent(this, com.goodwy.gallery.activities.EditActivity::class.java).apply {
+                    data = uri
+                    putExtra(REAL_FILE_PATH, newPath)
+                    startActivity(this)
+                }
+            }
+        }
     }
 }
 
@@ -1330,9 +1341,7 @@ fun Activity.proposeNewFilePath(uri: Uri): Pair<String, Boolean> {
     }
 
     if (newPath.isEmpty()) {
-        newPath = "$internalStoragePath/${getCurrentFormattedDateTime()}.${
-            uri.toString().getFilenameExtension()
-        }"
+        newPath = "$internalStoragePath/${getCurrentFormattedDateTime()}.${uri.toString().getFilenameExtension()}"
         shouldAppendFilename = false
     }
 

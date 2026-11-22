@@ -117,12 +117,15 @@ class StickerLayer(
     }
 
     init {
-        val bW = bitmap.width.toFloat()
-        val bH = bitmap.height.toFloat()
-        var scale = minOf(maxWidth / bW, maxHeight / bH)
+        val bW = bitmap.width.toFloat().coerceAtLeast(1f)
+        val bH = bitmap.height.toFloat().coerceAtLeast(1f)
+        val safeMaxW = if (maxWidth > 10f) maxWidth else 600f
+        val safeMaxH = if (maxHeight > 10f) maxHeight else 600f
+        var scale = minOf(safeMaxW / bW, safeMaxH / bH)
         if (scale > 1.0f) scale = 1.0f
-        this.width = bW * scale
-        this.height = bH * scale
+        if (scale <= 0f) scale = 0.5f
+        this.width = (bW * scale).coerceAtLeast(50f)
+        this.height = (bH * scale).coerceAtLeast(50f)
     }
 
     fun getTransformMatrix(): Matrix {

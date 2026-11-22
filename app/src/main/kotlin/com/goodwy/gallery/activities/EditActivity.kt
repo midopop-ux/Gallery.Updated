@@ -1003,7 +1003,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             loadStickerCanvas()
         }
 
-        binding.freestyleOverlayView.beVisibleIf((currPrimaryAction == PRIMARY_ACTION_STICKER || binding.freestyleOverlayView.layers.isNotEmpty()) && croppingStickerLayer == null)
+        binding.freestyleOverlayView.beVisibleIf((isCollageMode || currPrimaryAction == PRIMARY_ACTION_STICKER || binding.freestyleOverlayView.layers.isNotEmpty()) && croppingStickerLayer == null)
 
         arrayOf(
             binding.bottomEditorPrimaryActions.bottomPrimaryFilter,
@@ -2368,11 +2368,16 @@ class EditActivity : BaseCropActivity(), CanvasListener {
                 }
 
                 runOnUiThread {
-                    if (!isFinishing && !isDestroyed) {
-                        for (b in loaded) {
-                            binding.freestyleOverlayView.addSticker(b)
+                    if (!isFinishing && !isDestroyed && loaded.isNotEmpty()) {
+                        binding.freestyleOverlayView.beVisible()
+                        binding.freestyleOverlayView.post {
+                            for (b in loaded) {
+                                binding.freestyleOverlayView.addSticker(b)
+                            }
+                            loadStickerCanvas()
+                            binding.freestyleOverlayView.invalidate()
+                            refreshMenuItems()
                         }
-                        loadStickerCanvas()
                     }
                 }
             }

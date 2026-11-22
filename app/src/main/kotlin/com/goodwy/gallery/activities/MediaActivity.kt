@@ -1144,10 +1144,10 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
                 return
             }
 
-            when (config.videoPlayerType) {
-                VIDEO_PLAYER_SYSTEM -> openSystemDefaultPlayer(path)
-                VIDEO_PLAYER_APP -> if (config.gestureVideoPlayer) launchGesturePlayer(path) else openInViewPager(path)
-                else -> openInViewPager(path) // unreachable by design
+            if (config.gestureVideoPlayer) {
+                launchGesturePlayer(path)
+            } else {
+                openInViewPager(path)
             }
         }
     }

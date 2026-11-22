@@ -210,11 +210,16 @@ class FreeStyleOverlayView @JvmOverloads constructor(
     fun addSticker(bitmap: Bitmap) {
         recordHistorySnapshot()
         val density = resources.displayMetrics.density
+        val dmW = resources.displayMetrics.widthPixels.toFloat()
+        val dmH = resources.displayMetrics.heightPixels.toFloat() * 0.7f
+        val viewW = if (width > 50) width.toFloat() else dmW
+        val viewH = if (height > 50) height.toFloat() else dmH
+
         val offset = (layers.size % 6) * (20f * density) - (2f * 20f * density)
-        val cX = width / 2f + offset
-        val cY = height / 2f + offset
-        val maxW = width * 0.65f
-        val maxH = height * 0.65f
+        val cX = viewW / 2f + offset
+        val cY = viewH / 2f + offset
+        val maxW = (viewW * 0.65f).coerceAtLeast(200f)
+        val maxH = (viewH * 0.65f).coerceAtLeast(200f)
         val layer = StickerLayer(bitmap, cX, cY, maxW, maxH)
         layers.add(layer)
         activeLayer = layer
