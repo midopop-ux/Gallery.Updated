@@ -36,9 +36,20 @@
             android:thumbTint="@android:color/white" />
 
         <ImageView
+            android:id="@+id/btn_sticker_crop"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="6dp"
+            android:src="@drawable/ic_crop"
+            android:tint="@android:color/white" />
+
+        <ImageView
             android:id="@+id/btn_sticker_bring_forward"
             android:layout_width="32dp"
             android:layout_height="32dp"
+            android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:padding="6dp"
             android:src="@drawable/ic_layers_vector"

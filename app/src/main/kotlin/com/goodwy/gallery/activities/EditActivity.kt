@@ -60,6 +60,7 @@ import com.goodwy.gallery.extensions.updateDateTimeForPaths
 import com.goodwy.gallery.extensions.tweakTimestampByOneSecond
 import com.goodwy.gallery.extensions.backupToRecycleBin
 import com.goodwy.gallery.models.Medium
+import com.goodwy.gallery.models.StickerLayer
 import com.goodwy.gallery.helpers.*
 import com.goodwy.gallery.interfaces.CanvasListener
 import com.goodwy.gallery.models.FilterItem
@@ -122,6 +123,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     private var originalLastModified = 0L
     private var originalDateTaken = 0L
     private var originalFilePath = ""
+    private var croppingStickerLayer: StickerLayer? = null
 
     override val cropImageView: CropImageView
         get() = binding.cropImageView
@@ -174,10 +176,26 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         setupToolbar(binding.editorToolbar, NavigationIcon.Arrow, Color.BLACK)
         setupTopAppBar(binding.editorAppbar, NavigationIcon.Arrow, topBarColor = Color.BLACK)
 
+        binding.editorToolbar.setNavigationOnClickListener {
+            if (croppingStickerLayer != null) {
+                cancelStickerCrop(keepActive = true)
+            } else {
+                finish()
+            }
+        }
+
         if (baseConfig.topAppBarColorIcon) {
             binding.bottomEditorPrimaryActions.bottomPrimaryCancel.setTextColor(getProperPrimaryColor)
             binding.bottomEditorPrimaryActions.bottomPrimarySave.setTextColor(getProperPrimaryColor)
         }
+    }
+
+    override fun onBackPressed() {
+        if (croppingStickerLayer != null) {
+            cancelStickerCrop(keepActive = true)
+            return
+        }
+        super.onBackPressed()
     }
 
     override fun onStop() {
@@ -333,6 +351,14 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     }
 
     private fun loadDefaultImageView() {
+        if (isCollageMode) {
+            binding.defaultImageView.beVisible()
+            binding.cropImageView.beGone()
+            binding.editorDrawCanvas.beGone()
+            refreshMenuItems()
+            return
+        }
+
         if (!isUriValid(uri)) {
             showErrorToast(getString(R.string.invalid_image_path))
             finish()
@@ -403,10 +429,24 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     private fun loadCropImageView() {
         binding.defaultImageView.beGone()
         binding.editorDrawCanvas.beGone()
+        binding.freestyleOverlayView.beGone()
         refreshMenuItems()
+
+        val activeLayer = binding.freestyleOverlayView.activeLayer
+        if (activeLayer != null) {
+            startCroppingSticker(activeLayer)
+            return
+        }
+
         binding.cropImageView.apply {
             beVisible()
-            setImageUriAsync(uri)
+            if (isCollageMode) {
+                setImageBitmap(getCollageComposedBitmap())
+            } else if (isUriValid(uri)) {
+                setImageUriAsync(uri)
+            } else if (filterInitialBitmap != null) {
+                setImageBitmap(filterInitialBitmap)
+            }
             guidelines = CropImageView.Guidelines.ON
 
             if (isCropIntent && shouldCropSquare()) {
@@ -481,6 +521,10 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     }
 
     private fun startSaveFlow(overwrite: Boolean) {
+        if (croppingStickerLayer != null) {
+            cropImage()
+            return
+        }
         overwriteRequested = overwrite
         setOldExif()
         when {
@@ -502,6 +546,18 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         if (isFinishing || isDestroyed) return
         if (error != null || bitmap == null) {
             toast("${getString(R.string.image_editing_failed)}: ${error?.message}")
+            return
+        }
+
+        if (croppingStickerLayer != null) {
+            val targetLayer = croppingStickerLayer!!
+            croppingStickerLayer = null
+
+            targetLayer.bitmap = bitmap
+            val newRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
+            targetLayer.height = targetLayer.width / newRatio
+
+            cancelStickerCrop(keepActive = true)
             return
         }
 
@@ -669,11 +725,19 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         }
 
         binding.bottomEditorPrimaryActions.bottomPrimaryCancel.setOnClickListener {
-            finish()
+            if (croppingStickerLayer != null) {
+                cancelStickerCrop(keepActive = true)
+            } else {
+                finish()
+            }
         }
 
         binding.bottomEditorPrimaryActions.bottomPrimarySave.setOnClickListener {
-            startSaveFlow(overwrite = false)
+            if (croppingStickerLayer != null) {
+                cropImage()
+            } else {
+                startSaveFlow(overwrite = false)
+            }
         }
 
         arrayOf(
@@ -692,26 +756,39 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     }
 
     private fun bottomFilterClicked() {
+        if (croppingStickerLayer != null) cancelStickerCrop(keepActive = false)
         currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_FILTER) PRIMARY_ACTION_NONE else PRIMARY_ACTION_FILTER
         updatePrimaryActionButtons()
     }
 
     private fun bottomCropRotateClicked() {
+        if (croppingStickerLayer != null) {
+            cancelStickerCrop(keepActive = true)
+            return
+        }
+        val activeLayer = binding.freestyleOverlayView.activeLayer
+        if (activeLayer != null && currPrimaryAction != PRIMARY_ACTION_CROP_ROTATE) {
+            startCroppingSticker(activeLayer)
+            return
+        }
         currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_CROP_ROTATE) PRIMARY_ACTION_NONE else PRIMARY_ACTION_CROP_ROTATE
         updatePrimaryActionButtons()
     }
 
     private fun bottomDrawClicked() {
+        if (croppingStickerLayer != null) cancelStickerCrop(keepActive = false)
         currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_DRAW) PRIMARY_ACTION_NONE else PRIMARY_ACTION_DRAW
         updatePrimaryActionButtons()
     }
 
     private fun bottomAdjustClicked() {
+        if (croppingStickerLayer != null) cancelStickerCrop(keepActive = false)
         currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_ADJUST) PRIMARY_ACTION_NONE else PRIMARY_ACTION_ADJUST
         updatePrimaryActionButtons()
     }
 
     private fun bottomStickerClicked() {
+        if (croppingStickerLayer != null) cancelStickerCrop(keepActive = true)
         currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_STICKER) PRIMARY_ACTION_NONE else PRIMARY_ACTION_STICKER
         updatePrimaryActionButtons()
     }
@@ -844,7 +921,7 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             loadStickerCanvas()
         }
 
-        binding.freestyleOverlayView.beVisibleIf(currPrimaryAction == PRIMARY_ACTION_STICKER || binding.freestyleOverlayView.layers.isNotEmpty())
+        binding.freestyleOverlayView.beVisibleIf((currPrimaryAction == PRIMARY_ACTION_STICKER || binding.freestyleOverlayView.layers.isNotEmpty()) && croppingStickerLayer == null)
 
         arrayOf(
             binding.bottomEditorPrimaryActions.bottomPrimaryFilter,
@@ -1668,11 +1745,83 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         }
     }
 
+    private fun startCroppingSticker(layer: StickerLayer) {
+        if (layer.bitmap.isRecycled) return
+
+        croppingStickerLayer = layer
+        currPrimaryAction = PRIMARY_ACTION_CROP_ROTATE
+
+        binding.defaultImageView.beGone()
+        binding.editorDrawCanvas.beGone()
+        binding.freestyleOverlayView.beGone()
+        binding.bottomEditorStickerActions.root.beGone()
+        binding.bottomEditorFilterActions.root.beGone()
+        binding.bottomEditorDrawActions.root.beGone()
+        binding.bottomEditorAdjustActions.root.beGone()
+
+        refreshMenuItems()
+
+        binding.cropImageView.apply {
+            beVisible()
+            setImageBitmap(layer.bitmap)
+            guidelines = CropImageView.Guidelines.ON
+            setFixedAspectRatio(false)
+            clearAspectRatio()
+        }
+
+        binding.bottomEditorCropRotateActions.root.beVisible()
+        binding.bottomEditorCropRotateActions.bottomResize.beGone()
+        binding.bottomAspectRatios.root.beGone()
+
+        updatePrimaryActionButtons()
+    }
+
+    private fun cancelStickerCrop(keepActive: Boolean = true) {
+        val layer = croppingStickerLayer
+        croppingStickerLayer = null
+
+        binding.cropImageView.apply {
+            beGone()
+            setImageBitmap(null)
+        }
+        binding.bottomEditorCropRotateActions.root.beGone()
+        binding.bottomAspectRatios.root.beGone()
+
+        binding.defaultImageView.beVisible()
+        binding.freestyleOverlayView.beVisible()
+
+        if (!keepActive) {
+            binding.freestyleOverlayView.activeLayer = null
+            binding.bottomEditorStickerActions.stickerLayerControls.beGone()
+        } else if (layer != null) {
+            binding.freestyleOverlayView.activeLayer = layer
+            binding.bottomEditorStickerActions.stickerLayerControls.beVisible()
+            binding.bottomEditorStickerActions.stickerOpacitySlider.progress = (layer.opacity * 100).toInt()
+        }
+
+        binding.freestyleOverlayView.invalidate()
+        currPrimaryAction = PRIMARY_ACTION_STICKER
+        updatePrimaryActionButtons()
+    }
+
+    private fun getCollageComposedBitmap(): Bitmap {
+        val base = Bitmap.createBitmap(1440, 1920, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(base)
+        if (collageBgColor != Color.TRANSPARENT) {
+            canvas.drawColor(collageBgColor)
+        }
+        if (binding.freestyleOverlayView.layers.isNotEmpty()) {
+            binding.freestyleOverlayView.renderLayersToCanvas(canvas, base.width, base.height)
+        }
+        return base
+    }
+
     private fun setupStickerControls() {
         val overlay = binding.freestyleOverlayView
         val layerControls = binding.bottomEditorStickerActions.stickerLayerControls
         val opacitySlider = binding.bottomEditorStickerActions.stickerOpacitySlider
         val btnBringForward = binding.bottomEditorStickerActions.btnStickerBringForward
+        val btnCrop = binding.bottomEditorStickerActions.btnStickerCrop
         val btnDelete = binding.bottomEditorStickerActions.btnStickerDelete
         val btnAddPhoto = binding.bottomEditorStickerActions.btnAddStickerPhoto
 
@@ -1696,12 +1845,31 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
         })
 
+        btnCrop.setOnClickListener {
+            val layer = overlay.activeLayer
+            if (layer != null) {
+                startCroppingSticker(layer)
+            }
+        }
+        btnCrop.setOnLongClickListener {
+            toast(R.string.crop)
+            true
+        }
+
         btnBringForward.setOnClickListener {
             overlay.bringActiveLayerForward()
+        }
+        btnBringForward.setOnLongClickListener {
+            toast("Bring Forward")
+            true
         }
 
         btnDelete.setOnClickListener {
             overlay.removeActiveLayer()
+        }
+        btnDelete.setOnLongClickListener {
+            toast(com.goodwy.commons.R.string.delete)
+            true
         }
 
         btnAddPhoto.setOnClickListener {

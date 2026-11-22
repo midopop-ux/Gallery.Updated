@@ -403,8 +403,10 @@ class FreeStyleOverlayView @JvmOverloads constructor(
 
     fun renderLayersToCanvas(targetCanvas: Canvas, targetWidth: Int, targetHeight: Int) {
         if (layers.isEmpty()) return
-        val scaleX = targetWidth / width.toFloat()
-        val scaleY = targetHeight / height.toFloat()
+        val currentW = if (width > 0) width.toFloat() else targetWidth.toFloat()
+        val currentH = if (height > 0) height.toFloat() else targetHeight.toFloat()
+        val scaleX = targetWidth / currentW
+        val scaleY = targetHeight / currentH
         targetCanvas.save()
         targetCanvas.scale(scaleX, scaleY)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
