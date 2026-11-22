@@ -11,4 +11,5 @@
     <color name="tab_indicator_gray">#FFB6B6B6</color>
     <color name="tab_indicator_dark">#FF706A6D</color>
     <color name="tab_indicator_black">#FF515151</color>
+    <color name="theme_accent_color">#FF2196F3</color>
 </resources>

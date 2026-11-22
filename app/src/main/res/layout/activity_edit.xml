@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/editor_coordinator"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
 
     <com.goodwy.commons.views.MyAppBarLayout
         android:id="@+id/editor_appbar"
@@ -28,6 +29,7 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
+        <!-- Bottom panels container barrier -->
         <androidx.constraintlayout.widget.Barrier
             android:id="@+id/bottom_actions_barrier"
             android:layout_width="match_parent"
@@ -37,8 +39,11 @@
                                            bottom_aspect_ratios,
                                            bottom_editor_filter_actions,
                                            bottom_editor_crop_rotate_actions,
-                                           bottom_editor_draw_actions" />
+                                           bottom_editor_draw_actions,
+                                           bottom_editor_adjust_actions,
+                                           bottom_editor_sticker_actions" />
 
+        <!-- 1. Central Image Viewport -->
         <ImageView
             android:id="@+id/default_image_view"
             android:layout_width="0dp"
@@ -47,8 +52,9 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0" />
+            app:layout_constraintVertical_bias="0.5" />
 
+        <!-- 2. Interactive Crop Image View -->
         <com.canhub.cropper.CropImageView
             android:id="@+id/crop_image_view"
             android:layout_width="0dp"
@@ -60,8 +66,9 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0" />
+            app:layout_constraintVertical_bias="0.5" />
 
+        <!-- 3. Interactive Draw Canvas -->
         <com.goodwy.gallery.views.EditorDrawCanvas
             android:id="@+id/editor_draw_canvas"
             android:layout_width="0dp"
@@ -72,7 +79,35 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0" />
+            app:layout_constraintVertical_bias="0.5" />
+
+        <!-- 4. Interactive FreeStyle Overlay View -->
+        <com.goodwy.gallery.views.FreeStyleOverlayView
+            android:id="@+id/freestyle_overlay_view"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottom_actions_barrier"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.5" />
+
+        <!-- 5. Floating Compare Before/After Button -->
+        <ImageView
+            android:id="@+id/btn_compare_before_after"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_circle_button"
+            android:contentDescription="Compare"
+            android:padding="10dp"
+            android:src="@drawable/ic_compare_vector"
+            android:tint="@android:color/white"
+            app:layout_constraintBottom_toTopOf="@id/bottom_actions_barrier"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <RelativeLayout
             android:id="@+id/bottom_editor_actions_background"
@@ -81,6 +116,7 @@
             android:background="@drawable/gradient_background"
             app:layout_constraintBottom_toBottomOf="parent" />
 
+        <!-- Panels Included -->
         <include
             android:id="@+id/bottom_editor_primary_actions"
             layout="@layout/bottom_editor_primary_actions"
@@ -101,16 +137,16 @@
             layout="@layout/bottom_editor_actions_filter"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions"
-            tools:visibility="visible" />
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions" />
 
         <include
             android:id="@+id/bottom_editor_crop_rotate_actions"
             layout="@layout/bottom_editor_crop_rotate_actions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions"
-            tools:visibility="visible" />
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions" />
 
         <include
             android:id="@+id/bottom_editor_draw_actions"
@@ -118,8 +154,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions"
-            tools:visibility="visible" />
+            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions" />
+
+        <include
+            android:id="@+id/bottom_editor_adjust_actions"
+            layout="@layout/bottom_editor_actions_adjust"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions" />
+
+        <include
+            android:id="@+id/bottom_editor_sticker_actions"
+            layout="@layout/bottom_editor_actions_sticker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

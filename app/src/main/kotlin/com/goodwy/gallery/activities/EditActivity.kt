@@ -79,9 +79,13 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         private const val PRIMARY_ACTION_FILTER = 1
         private const val PRIMARY_ACTION_CROP_ROTATE = 2
         private const val PRIMARY_ACTION_DRAW = 3
+        private const val PRIMARY_ACTION_ADJUST = 4
+        private const val PRIMARY_ACTION_STICKER = 5
 
         private const val CROP_ROTATE_NONE = 0
         private const val CROP_ROTATE_ASPECT_RATIO = 1
+
+        private const val PICK_STICKER_PHOTO_INTENT = 9912
     }
 
     private lateinit var eyeDropper: EyeDropper
@@ -100,6 +104,9 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     private var wasDrawCanvasPositioned = false
     private var oldExif: ExifInterface? = null
     private var filterInitialBitmap: Bitmap? = null
+    private var adjustedPreviewBitmap: Bitmap? = null
+    private val adjustParameters = AdjustParameters()
+    private var currentAdjustTab = 0 // 0: Brightness, 1: Contrast, 2: Saturation, 3: Warmth
     private var originalUri: Uri? = null
     private var isEraserOn = false
     private var isEyeDropperOn = false
@@ -525,12 +532,24 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     }
 
     private fun withFilteredImage(callback: (Bitmap) -> Unit) {
-        val currentFilter = getFiltersAdapter()?.getCurrentFilter()?.filter ?: return
+        val currentFilter = getFiltersAdapter()?.getCurrentFilter()?.filter
         freeMemory()
         ensureBackgroundThread {
             try {
-                val original = getOriginalBitmap()
-                currentFilter.processFilter(original)
+                var original = getOriginalBitmap()
+                if (currentFilter != null && currentFilter.name != getString(com.goodwy.commons.R.string.none)) {
+                    currentFilter.processFilter(original)
+                }
+
+                if (!adjustParameters.isDefault()) {
+                    original = ImageAdjustHelper.applyAdjustments(original, adjustParameters)
+                }
+
+                if (binding.freestyleOverlayView.layers.isNotEmpty()) {
+                    val canvas = Canvas(original)
+                    binding.freestyleOverlayView.renderLayersToCanvas(canvas, original.width, original.height)
+                }
+
                 callback(original)
             } catch (_: OutOfMemoryError) {
                 toast(com.goodwy.commons.R.string.out_of_memory_error)
@@ -612,7 +631,15 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         }
 
         binding.bottomEditorPrimaryActions.bottomPrimaryDraw.setOnClickListener {
-        bottomDrawClicked()
+            bottomDrawClicked()
+        }
+
+        binding.bottomEditorPrimaryActions.bottomPrimaryAdjust.setOnClickListener {
+            bottomAdjustClicked()
+        }
+
+        binding.bottomEditorPrimaryActions.bottomPrimarySticker.setOnClickListener {
+            bottomStickerClicked()
         }
 
         binding.bottomEditorPrimaryActions.bottomPrimaryCancel.setOnClickListener {
@@ -626,36 +653,40 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         arrayOf(
             binding.bottomEditorPrimaryActions.bottomPrimaryFilter,
             binding.bottomEditorPrimaryActions.bottomPrimaryCropRotate,
-            binding.bottomEditorPrimaryActions.bottomPrimaryDraw
+            binding.bottomEditorPrimaryActions.bottomPrimaryDraw,
+            binding.bottomEditorPrimaryActions.bottomPrimaryAdjust,
+            binding.bottomEditorPrimaryActions.bottomPrimarySticker
         ).forEach {
             it.showContentDescriptionOnLongClick()
         }
+
+        setupAdjustControls()
+        setupStickerControls()
+        setupCompareButton()
     }
 
     private fun bottomFilterClicked() {
-        currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_FILTER) {
-            PRIMARY_ACTION_NONE
-        } else {
-            PRIMARY_ACTION_FILTER
-        }
+        currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_FILTER) PRIMARY_ACTION_NONE else PRIMARY_ACTION_FILTER
         updatePrimaryActionButtons()
     }
 
     private fun bottomCropRotateClicked() {
-        currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_CROP_ROTATE) {
-            PRIMARY_ACTION_NONE
-        } else {
-            PRIMARY_ACTION_CROP_ROTATE
-        }
+        currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_CROP_ROTATE) PRIMARY_ACTION_NONE else PRIMARY_ACTION_CROP_ROTATE
         updatePrimaryActionButtons()
     }
 
     private fun bottomDrawClicked() {
-        currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_DRAW) {
-            PRIMARY_ACTION_NONE
-        } else {
-            PRIMARY_ACTION_DRAW
-        }
+        currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_DRAW) PRIMARY_ACTION_NONE else PRIMARY_ACTION_DRAW
+        updatePrimaryActionButtons()
+    }
+
+    private fun bottomAdjustClicked() {
+        currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_ADJUST) PRIMARY_ACTION_NONE else PRIMARY_ACTION_ADJUST
+        updatePrimaryActionButtons()
+    }
+
+    private fun bottomStickerClicked() {
+        currPrimaryAction = if (currPrimaryAction == PRIMARY_ACTION_STICKER) PRIMARY_ACTION_NONE else PRIMARY_ACTION_STICKER
         updatePrimaryActionButtons()
     }
 
@@ -779,16 +810,22 @@ class EditActivity : BaseCropActivity(), CanvasListener {
     private fun updatePrimaryActionButtons() {
         if (binding.cropImageView.isGone() && currPrimaryAction == PRIMARY_ACTION_CROP_ROTATE) {
             loadCropImageView()
-        } else if (binding.defaultImageView.isGone() && currPrimaryAction == PRIMARY_ACTION_FILTER) {
+        } else if (binding.defaultImageView.isGone() && (currPrimaryAction == PRIMARY_ACTION_FILTER || currPrimaryAction == PRIMARY_ACTION_ADJUST || currPrimaryAction == PRIMARY_ACTION_NONE)) {
             loadDefaultImageView()
         } else if (binding.editorDrawCanvas.isGone() && currPrimaryAction == PRIMARY_ACTION_DRAW) {
             loadDrawCanvas()
+        } else if (currPrimaryAction == PRIMARY_ACTION_STICKER) {
+            loadStickerCanvas()
         }
+
+        binding.freestyleOverlayView.beVisibleIf(currPrimaryAction == PRIMARY_ACTION_STICKER || binding.freestyleOverlayView.layers.isNotEmpty())
 
         arrayOf(
             binding.bottomEditorPrimaryActions.bottomPrimaryFilter,
             binding.bottomEditorPrimaryActions.bottomPrimaryCropRotate,
-            binding.bottomEditorPrimaryActions.bottomPrimaryDraw
+            binding.bottomEditorPrimaryActions.bottomPrimaryDraw,
+            binding.bottomEditorPrimaryActions.bottomPrimaryAdjust,
+            binding.bottomEditorPrimaryActions.bottomPrimarySticker
         ).forEach {
             it.applyColorFilter(Color.WHITE)
         }
@@ -797,6 +834,8 @@ class EditActivity : BaseCropActivity(), CanvasListener {
             PRIMARY_ACTION_FILTER -> binding.bottomEditorPrimaryActions.bottomPrimaryFilter
             PRIMARY_ACTION_CROP_ROTATE -> binding.bottomEditorPrimaryActions.bottomPrimaryCropRotate
             PRIMARY_ACTION_DRAW -> binding.bottomEditorPrimaryActions.bottomPrimaryDraw
+            PRIMARY_ACTION_ADJUST -> binding.bottomEditorPrimaryActions.bottomPrimaryAdjust
+            PRIMARY_ACTION_STICKER -> binding.bottomEditorPrimaryActions.bottomPrimarySticker
             else -> null
         }
 
@@ -804,6 +843,8 @@ class EditActivity : BaseCropActivity(), CanvasListener {
         binding.bottomEditorFilterActions.root.beVisibleIf(currPrimaryAction == PRIMARY_ACTION_FILTER)
         binding.bottomEditorCropRotateActions.root.beVisibleIf(currPrimaryAction == PRIMARY_ACTION_CROP_ROTATE)
         binding.bottomEditorDrawActions.root.beVisibleIf(currPrimaryAction == PRIMARY_ACTION_DRAW)
+        binding.bottomEditorAdjustActions.root.beVisibleIf(currPrimaryAction == PRIMARY_ACTION_ADJUST)
+        binding.bottomEditorStickerActions.root.beVisibleIf(currPrimaryAction == PRIMARY_ACTION_STICKER)
 
         if (currPrimaryAction == PRIMARY_ACTION_FILTER && binding.bottomEditorFilterActions.bottomActionsFilterList.adapter == null) {
             ensureBackgroundThread {
@@ -1469,4 +1510,212 @@ class EditActivity : BaseCropActivity(), CanvasListener {
 
         updateButtonStates()
     }
+
+    private fun loadStickerCanvas() {
+        binding.cropImageView.beGone()
+        binding.editorDrawCanvas.beGone()
+        binding.defaultImageView.beVisible()
+        binding.freestyleOverlayView.beVisible()
+        refreshMenuItems()
+    }
+
+    private fun setupAdjustControls() {
+        val slider = binding.bottomEditorAdjustActions.adjustSlider
+        val propName = binding.bottomEditorAdjustActions.adjustPropertyName
+        val propValue = binding.bottomEditorAdjustActions.adjustPropertyValue
+        val resetBtn = binding.bottomEditorAdjustActions.adjustResetCurrent
+
+        val tabBrightness = binding.bottomEditorAdjustActions.adjustTabBrightness
+        val tabContrast = binding.bottomEditorAdjustActions.adjustTabContrast
+        val tabSaturation = binding.bottomEditorAdjustActions.adjustTabSaturation
+        val tabWarmth = binding.bottomEditorAdjustActions.adjustTabWarmth
+
+        fun updateSliderUI() {
+            val (name, value) = when (currentAdjustTab) {
+                0 -> Pair("Brightness", adjustParameters.brightness.toInt())
+                1 -> Pair("Contrast", adjustParameters.contrast.toInt())
+                2 -> Pair("Saturation", adjustParameters.saturation.toInt())
+                3 -> Pair("Warmth", adjustParameters.warmth.toInt())
+                else -> Pair("Adjust", 0)
+            }
+            propName.text = name
+            propValue.text = if (value > 0) "+$value" else "$value"
+            slider.progress = value + 100
+
+            tabBrightness.setBackgroundResource(if (currentAdjustTab == 0) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button)
+            tabContrast.setBackgroundResource(if (currentAdjustTab == 1) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button)
+            tabSaturation.setBackgroundResource(if (currentAdjustTab == 2) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button)
+            tabWarmth.setBackgroundResource(if (currentAdjustTab == 3) R.drawable.bg_pill_button_selected else R.drawable.bg_pill_button)
+        }
+
+        tabBrightness.setOnClickListener { currentAdjustTab = 0; updateSliderUI() }
+        tabContrast.setOnClickListener { currentAdjustTab = 1; updateSliderUI() }
+        tabSaturation.setOnClickListener { currentAdjustTab = 2; updateSliderUI() }
+        tabWarmth.setOnClickListener { currentAdjustTab = 3; updateSliderUI() }
+
+        resetBtn.setOnClickListener {
+            when (currentAdjustTab) {
+                0 -> adjustParameters.brightness = 0f
+                1 -> adjustParameters.contrast = 0f
+                2 -> adjustParameters.saturation = 0f
+                3 -> adjustParameters.warmth = 0f
+            }
+            updateSliderUI()
+            applyCurrentAdjustments()
+        }
+
+        slider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    val value = (progress - 100).toFloat()
+                    when (currentAdjustTab) {
+                        0 -> adjustParameters.brightness = value
+                        1 -> adjustParameters.contrast = value
+                        2 -> adjustParameters.saturation = value
+                        3 -> adjustParameters.warmth = value
+                    }
+                    propValue.text = if (value > 0) "+${value.toInt()}" else "${value.toInt()}"
+                    applyCurrentAdjustments()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+        })
+
+        updateSliderUI()
+    }
+
+    private fun applyCurrentAdjustments() {
+        val base = filterInitialBitmap ?: return
+        if (adjustParameters.isDefault()) {
+            val currentFilter = getFiltersAdapter()?.getCurrentFilter()
+            if (currentFilter != null && currentFilter.filter.name != getString(com.goodwy.commons.R.string.none)) {
+                applyFilter(currentFilter)
+            } else {
+                binding.defaultImageView.setImageBitmap(base)
+            }
+            adjustedPreviewBitmap = null
+        } else {
+            val currentFilter = getFiltersAdapter()?.getCurrentFilter()
+            val filteredBase = if (currentFilter != null && currentFilter.filter.name != getString(com.goodwy.commons.R.string.none)) {
+                val copy = Bitmap.createBitmap(base)
+                currentFilter.filter.processFilter(copy)
+            } else {
+                base
+            }
+            val adjusted = ImageAdjustHelper.applyAdjustments(filteredBase, adjustParameters)
+            adjustedPreviewBitmap = adjusted
+            binding.defaultImageView.setImageBitmap(adjusted)
+        }
+    }
+
+    private fun setupStickerControls() {
+        val overlay = binding.freestyleOverlayView
+        val layerControls = binding.bottomEditorStickerActions.stickerLayerControls
+        val opacitySlider = binding.bottomEditorStickerActions.stickerOpacitySlider
+        val btnBringForward = binding.bottomEditorStickerActions.btnStickerBringForward
+        val btnDelete = binding.bottomEditorStickerActions.btnStickerDelete
+        val btnAddPhoto = binding.bottomEditorStickerActions.btnAddStickerPhoto
+
+        overlay.onLayerSelectedListener = { layer ->
+            if (layer != null) {
+                layerControls.beVisible()
+                opacitySlider.progress = (layer.opacity * 100).toInt()
+            } else {
+                layerControls.beGone()
+            }
+        }
+
+        opacitySlider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    overlay.activeLayer?.opacity = progress / 100f
+                    overlay.invalidate()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+        })
+
+        btnBringForward.setOnClickListener {
+            overlay.bringActiveLayerForward()
+        }
+
+        btnDelete.setOnClickListener {
+            overlay.removeActiveLayer()
+        }
+
+        btnAddPhoto.setOnClickListener {
+            val pickIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "image/*"
+            }
+            try {
+                startActivityForResult(pickIntent, PICK_STICKER_PHOTO_INTENT)
+            } catch (e: Exception) {
+                toast(e.message ?: "Failed to open picker")
+            }
+        }
+    }
+
+    private fun setupCompareButton() {
+        val compareBtn = binding.btnCompareBeforeAfter
+        compareBtn.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    // Show original untouched image
+                    filterInitialBitmap?.let { orig ->
+                        binding.defaultImageView.setImageBitmap(orig)
+                        binding.freestyleOverlayView.beGone()
+                    }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    // Restore current edited state
+                    if (adjustedPreviewBitmap != null) {
+                        binding.defaultImageView.setImageBitmap(adjustedPreviewBitmap)
+                    } else {
+                        val currentFilter = getFiltersAdapter()?.getCurrentFilter()
+                        if (currentFilter != null && currentFilter.filter.name != getString(com.goodwy.commons.R.string.none)) {
+                            applyFilter(currentFilter)
+                        } else {
+                            filterInitialBitmap?.let { binding.defaultImageView.setImageBitmap(it) }
+                        }
+                    }
+                    if (currPrimaryAction == PRIMARY_ACTION_STICKER || binding.freestyleOverlayView.layers.isNotEmpty()) {
+                        binding.freestyleOverlayView.beVisible()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
+        super.onActivityResult(requestCode, resultCode, resultData)
+        if (requestCode == PICK_STICKER_PHOTO_INTENT && resultCode == RESULT_OK && resultData?.data != null) {
+            val stickerUri = resultData.data!!
+            ensureBackgroundThread {
+                try {
+                    val bitmap = Glide.with(applicationContext)
+                        .asBitmap()
+                        .load(stickerUri)
+                        .submit(1024, 1024)
+                        .get()
+
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) {
+                            binding.freestyleOverlayView.addSticker(bitmap)
+                            loadStickerCanvas()
+                        }
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread {
+                        showErrorToast(e)
+                    }
+                }
+            }
+        }
+    }
 }
+

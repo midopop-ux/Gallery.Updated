@@ -1,87 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/bottom_editor_primary_actions_wrapper"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:minHeight="@dimen/bottom_actions_height">
+    android:layout_height="56dp"
+    android:background="#DD181818"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
 
-    <com.goodwy.commons.views.MyTextView
+    <TextView
         android:id="@+id/bottom_primary_cancel"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/normal_margin"
-        android:layout_marginEnd="@dimen/normal_margin"
-        android:lines="1"
-        android:padding="@dimen/medium_margin"
-        android:contentDescription="@string/cancel"
-        android:ellipsize="end"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp"
         android:text="@string/cancel"
-        android:textSize="@dimen/bigger_text_size"
-        android:background="@drawable/ripple_all_corners"
-        app:layout_constraintEnd_toStartOf="@+id/bottom_primary_filter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:textColor="#BBFFFFFF"
+        android:textSize="15sp" />
 
-    <ImageView
-        android:id="@+id/bottom_primary_filter"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="@dimen/small_margin"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/filter"
-        android:padding="@dimen/normal_margin"
-        android:src="@drawable/ic_photo_filter_vector"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/bottom_primary_crop_rotate"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintHorizontal_bias='0'/>
-
-    <ImageView
-        android:id="@+id/bottom_primary_crop_rotate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/transform"
-        android:padding="@dimen/normal_margin"
-        android:src="@drawable/ic_crop_rotate_vector"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
-
-    <ImageView
-        android:id="@+id/bottom_primary_draw"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/small_margin"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/draw"
-        android:padding="@dimen/normal_margin"
-        android:src="@drawable/ic_easel"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/bottom_primary_crop_rotate"
-        app:layout_constraintTop_toTopOf="parent"/>
-
-    <com.goodwy.commons.views.MyTextView
-        android:id="@+id/bottom_primary_save"
+    <!-- Center tab icons with equal distribution -->
+    <LinearLayout
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/normal_margin"
-        android:layout_marginEnd="@dimen/normal_margin"
-        android:background="@drawable/ripple_all_corners"
-        android:contentDescription="@string/save"
-        android:ellipsize="end"
-        android:gravity="end"
-        android:lines="1"
-        android:padding="@dimen/medium_margin"
-        android:text="@string/save_as"
-        android:textSize="@dimen/bigger_text_size"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/bottom_primary_draw"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <!-- 1. Crop / Transform -->
+        <ImageView
+            android:id="@+id/bottom_primary_crop_rotate"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/transform"
+            android:padding="10dp"
+            android:src="@drawable/ic_crop_rotate_vector"
+            android:tint="@android:color/white" />
+
+        <!-- 2. Adjust (Color & Light) -->
+        <ImageView
+            android:id="@+id/bottom_primary_adjust"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Adjust"
+            android:padding="10dp"
+            android:src="@drawable/ic_tune_vector"
+            android:tint="@android:color/white" />
+
+        <!-- 3. Filters -->
+        <ImageView
+            android:id="@+id/bottom_primary_filter"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/filter"
+            android:padding="10dp"
+            android:src="@drawable/ic_photo_filter_vector"
+            android:tint="@android:color/white" />
+
+        <!-- 4. Markup / Draw -->
+        <ImageView
+            android:id="@+id/bottom_primary_draw"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/draw"
+            android:padding="10dp"
+            android:src="@drawable/ic_easel"
+            android:tint="@android:color/white" />
+
+        <!-- 5. FreeStyle / Sticker Overlay -->
+        <ImageView
+            android:id="@+id/bottom_primary_sticker"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Stickers"
+            android:padding="10dp"
+            android:src="@drawable/ic_sticker_vector"
+            android:tint="@android:color/white" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/bottom_primary_save"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:paddingStart="12dp"
+        android:paddingEnd="16dp"
+        android:text="@string/save"
+        android:textColor="@color/theme_accent_color"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+</LinearLayout>
