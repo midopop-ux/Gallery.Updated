@@ -53,12 +53,24 @@ jobs:
             BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
             echo "Using Build Tools at $BUILD_TOOLS_DIR"
             
-            keytool -genkey -v -keystore release-key.jks -alias gallery -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Gallery, OU=Android, O=Goodwy, L=Unknown, S=Unknown, C=US"
+            if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
+              echo "Decoding permanent release keystore from GitHub Secrets..."
+              echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+              KS_PASS="${{ secrets.RELEASE_KEYSTORE_PASSWORD }}"
+              KS_ALIAS="${{ secrets.RELEASE_KEY_ALIAS }}"
+              KEY_PASS="${{ secrets.RELEASE_KEY_PASSWORD }}"
+            else
+              echo "Falling back to ephemeral key..."
+              keytool -genkey -v -keystore release.keystore -alias gallery -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Gallery, OU=Android, O=Goodwy, L=Unknown, S=Unknown, C=US"
+              KS_PASS="android"
+              KS_ALIAS="gallery"
+              KEY_PASS="android"
+            fi
             
             for unsigned_apk in $(find app/build/outputs/apk/ -name "*unsigned.apk"); do
               signed_apk="output_apks/$(basename "$unsigned_apk" -unsigned.apk)-signed.apk"
               echo "Signing $unsigned_apk -> $signed_apk"
-              $BUILD_TOOLS_DIR/apksigner sign --ks release-key.jks --ks-pass pass:android --ks-key-alias gallery --key-pass pass:android --out "$signed_apk" "$unsigned_apk"
+              $BUILD_TOOLS_DIR/apksigner sign --ks release.keystore --ks-pass "pass:$KS_PASS" --ks-key-alias "$KS_ALIAS" --key-pass "pass:$KEY_PASS" --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --out "$signed_apk" "$unsigned_apk"
             done
           fi
           
