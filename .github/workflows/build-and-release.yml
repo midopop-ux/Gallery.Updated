@@ -2,6 +2,11 @@ name: Build and Release APK
 
 on:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build variant (release or debug)'
+        required: false
+        default: 'release'
 
 permissions:
   contents: write
