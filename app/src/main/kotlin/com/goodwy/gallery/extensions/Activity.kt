@@ -116,7 +116,9 @@ fun Activity.openEditor(path: String, forceChooser: Boolean = false) {
             val uri = getFinalUriFromPath(newPath, BuildConfig.APPLICATION_ID) ?: return@ensureBackgroundThread
             runOnUiThread {
                 Intent(this, com.goodwy.gallery.activities.EditActivity::class.java).apply {
-                    data = uri
+                    action = Intent.ACTION_EDIT
+                    setDataAndType(uri, newPath.getMimeType())
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     putExtra(REAL_FILE_PATH, newPath)
                     startActivity(this)
                 }
