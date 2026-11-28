@@ -138,31 +138,30 @@ object ImageAdjustHelper {
         val pixels = IntArray(w * h)
         bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        val hlFactor = highlights / 100f
-        val shFactor = shadows / 100f
+        val hlScale = (highlights / 100f) * 50f
+        val shScale = (shadows / 100f) * 50f
+        val deltaLut = IntArray(256) { lumIdx ->
+            val lum = lumIdx / 255f
+            val shadowWeight = 1.0f - lum
+            val highlightWeight = lum
+            (shScale * shadowWeight + hlScale * highlightWeight).toInt()
+        }
 
         for (i in pixels.indices) {
             val color = pixels[i]
             val a = (color ushr 24) and 0xFF
-            var r = (color ushr 16) and 0xFF
-            var g = (color ushr 8) and 0xFF
-            var b = color and 0xFF
+            val r = (color ushr 16) and 0xFF
+            val g = (color ushr 8) and 0xFF
+            val b = color and 0xFF
 
-            // Calculate perceptual luminance
-            val lum = (0.299f * r + 0.587f * g + 0.114f * b) / 255f
+            val lumIdx = (77 * r + 150 * g + 29 * b) ushr 8
+            val delta = deltaLut[lumIdx]
 
-            // Shadow weight peaks at dark tones (lum = 0..0.5)
-            val shadowWeight = (1.0f - lum).coerceIn(0f, 1f)
-            // Highlight weight peaks at light tones (lum = 0.5..1.0)
-            val highlightWeight = lum.coerceIn(0f, 1f)
+            val nr = (r + delta).coerceIn(0, 255)
+            val ng = (g + delta).coerceIn(0, 255)
+            val nb = (b + delta).coerceIn(0, 255)
 
-            val delta = (shFactor * shadowWeight * 50f) + (hlFactor * highlightWeight * 50f)
-
-            r = (r + delta).toInt().coerceIn(0, 255)
-            g = (g + delta).toInt().coerceIn(0, 255)
-            b = (b + delta).toInt().coerceIn(0, 255)
-
-            pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
+            pixels[i] = (a shl 24) or (nr shl 16) or (ng shl 8) or nb
         }
         bitmap.setPixels(pixels, 0, w, 0, 0, w, h)
     }
