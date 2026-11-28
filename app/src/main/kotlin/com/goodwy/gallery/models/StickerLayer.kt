@@ -109,7 +109,7 @@ class StickerLayer(
         const val HANDLE_ROTATE = 1
         const val HANDLE_SCALE = 2
         const val HANDLE_FLIP = 3
-        const val HANDLE_CROP = 4
+        const val HANDLE_DELETE = 4
         const val HANDLE_STRETCH_TOP = 5
         const val HANDLE_STRETCH_BOTTOM = 6
         const val HANDLE_STRETCH_LEFT = 7
@@ -202,7 +202,7 @@ class StickerLayer(
         if (dist(touchX, touchY, corners[0].x, corners[0].y) <= handleRadius * 1.5f) return HANDLE_FLIP
         if (dist(touchX, touchY, corners[1].x, corners[1].y) <= handleRadius * 1.5f) return HANDLE_ROTATE
         if (dist(touchX, touchY, corners[2].x, corners[2].y) <= handleRadius * 1.5f) return HANDLE_SCALE
-        if (dist(touchX, touchY, corners[3].x, corners[3].y) <= handleRadius * 1.5f) return HANDLE_CROP
+        if (dist(touchX, touchY, corners[3].x, corners[3].y) <= handleRadius * 1.5f) return HANDLE_DELETE
 
         val edges = getTransformedEdgeMidpoints()
         if (dist(touchX, touchY, edges[0].x, edges[0].y) <= handleRadius * 1.3f) return HANDLE_STRETCH_TOP
