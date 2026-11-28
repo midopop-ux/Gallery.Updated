@@ -342,4 +342,15 @@
     <string name="send_backward">Send backward</string>
     <string name="duplicate">Duplicate</string>
     <string name="opacity">Opacity</string>
+    <string name="adjust">Adjust</string>
+    <string name="highlights">Highlights</string>
+    <string name="shadows">Shadows</string>
+    <string name="contrast">Contrast</string>
+    <string name="saturation">Saturation</string>
+    <string name="warmth">Warmth</string>
+    <string name="vignette">Vignette</string>
+    <string name="no_images_on_canvas">No images on canvas</string>
+    <string name="add_photo_overlay">+ Add Photo Overlay</string>
+    <string name="set_canvas_photo">Canvas: Photo</string>
+    <string name="compare">Compare</string>
 </resources>

@@ -24,7 +24,7 @@
             android:textColor="@android:color/white"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:text="Brightness" />
+            android:text="@string/brightness" />
 
         <TextView
             android:id="@+id/adjust_property_value"
@@ -41,6 +41,7 @@
             android:layout_height="28dp"
             android:layout_marginStart="12dp"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/reset"
             android:padding="4dp"
             android:src="@drawable/ic_reset_vector"
             android:tint="@android:color/white" />
@@ -82,7 +83,7 @@
                 android:gravity="center"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Brightness"
+                android:text="@string/brightness"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 
@@ -95,7 +96,7 @@
                 android:gravity="center"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Highlights"
+                android:text="@string/highlights"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 
@@ -108,7 +109,7 @@
                 android:gravity="center"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Shadows"
+                android:text="@string/shadows"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 
@@ -121,7 +122,7 @@
                 android:gravity="center"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Contrast"
+                android:text="@string/contrast"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 
@@ -134,7 +135,7 @@
                 android:gravity="center"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Saturation"
+                android:text="@string/saturation"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 
@@ -147,7 +148,7 @@
                 android:gravity="center"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Warmth"
+                android:text="@string/warmth"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 
@@ -159,7 +160,7 @@
                 android:gravity="center"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Vignette"
+                android:text="@string/vignette"
                 android:textColor="@android:color/white"
                 android:textSize="13sp" />
 

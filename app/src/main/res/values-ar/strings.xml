@@ -311,4 +311,15 @@
     <string name="send_backward">إرسال للخلف</string>
     <string name="duplicate">تكرار</string>
     <string name="opacity">الشفافية</string>
+    <string name="adjust">تعديل</string>
+    <string name="highlights">الإبرازات</string>
+    <string name="shadows">الظلال</string>
+    <string name="contrast">التباين</string>
+    <string name="saturation">التشبع</string>
+    <string name="warmth">الدفء</string>
+    <string name="vignette">التعتيم الجانبي</string>
+    <string name="no_images_on_canvas">لا توجد صور على اللوحة</string>
+    <string name="add_photo_overlay">+ إضافة صورة</string>
+    <string name="set_canvas_photo">الخلفية: صورة</string>
+    <string name="compare">مقارنة</string>
 </resources>
