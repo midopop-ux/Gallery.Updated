@@ -68,20 +68,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.5" />
 
-        <!-- 3. Interactive Draw Canvas -->
-        <com.goodwy.gallery.views.EditorDrawCanvas
-            android:id="@+id/editor_draw_canvas"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:background="@android:color/transparent"
-            android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/bottom_actions_barrier"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.5" />
-
-        <!-- 4. Interactive FreeStyle Overlay View -->
+        <!-- 3. Interactive FreeStyle Overlay View -->
         <com.goodwy.gallery.views.FreeStyleOverlayView
             android:id="@+id/freestyle_overlay_view"
             android:layout_width="0dp"
@@ -94,19 +81,39 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.5" />
 
+        <!-- 4. Interactive Draw Canvas (Top transparent vector strokes overlay) -->
+        <com.goodwy.gallery.views.EditorDrawCanvas
+            android:id="@+id/editor_draw_canvas"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@android:color/transparent"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottom_actions_barrier"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.5" />
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/floating_bar_barrier"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:barrierDirection="top"
+            app:constraint_referenced_ids="bottom_actions_barrier,floating_layer_opacity_bar" />
+
         <!-- 5. Floating Compare Before/After Button -->
         <ImageView
             android:id="@+id/btn_compare_before_after"
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="12dp"
             android:background="@drawable/bg_circle_button"
-            android:contentDescription="Compare"
+            android:contentDescription="@string/compare"
             android:padding="10dp"
             android:src="@drawable/ic_compare_vector"
             android:tint="@android:color/white"
-            app:layout_constraintBottom_toTopOf="@id/bottom_actions_barrier"
+            app:layout_constraintBottom_toTopOf="@id/floating_bar_barrier"
             app:layout_constraintEnd_toEndOf="parent" />
 
         <RelativeLayout
@@ -179,7 +186,7 @@
             android:layout_height="46dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="10dp"
+            android:layout_marginBottom="8dp"
             android:background="@drawable/bg_floating_layer_bar"
             android:elevation="12dp"
             android:gravity="center_vertical"
@@ -187,7 +194,7 @@
             android:paddingStart="14dp"
             android:paddingEnd="10dp"
             android:visibility="gone"
-            app:layout_constraintBottom_toTopOf="@id/bottom_editor_primary_actions"
+            app:layout_constraintBottom_toTopOf="@id/bottom_actions_barrier"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 

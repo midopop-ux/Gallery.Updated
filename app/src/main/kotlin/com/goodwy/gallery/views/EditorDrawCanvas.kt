@@ -22,24 +22,26 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
     private var mColor = 0
     private var mWasMultitouch = false
 
-    private var mPaths = LinkedHashMap<Path, PaintOptions>()
     private var mPaint = Paint()
     private var mPath = MyPath()
     private var mPaintOptions = PaintOptions()
 
-    private var backgroundBitmap: Bitmap? = null
+    var isDrawingEnabled: Boolean = false
+    private var imageContentWidth: Int = 0
+    private var imageContentHeight: Int = 0
 
     private val MIN_ERASER_WIDTH = 20f
     private val MAX_HISTORY_COUNT = 1000
-    private val BITMAP_MAX_HISTORY_COUNT = 60
     var mListener: CanvasListener? = null
-    var mBackgroundBitmap: Bitmap? = null
+    var onBeforeStrokeListener: (() -> Unit)? = null
+    var onStrokeCommittedListener: (() -> Unit)? = null
+
     private var mOperations = ArrayList<CanvasOp>()
     private var mUndoneOperations = ArrayList<CanvasOp>()
-    private var mLastOperations = ArrayList<CanvasOp>()
-    private var mLastBackgroundBitmap: Bitmap? = null
-    private var mIsEraserOn = false
-    private var mBackgroundColor = 0
+    private var mBackgroundColor = Color.TRANSPARENT
+
+    private val workPath = Path()
+    private val workMatrix = Matrix()
 
     init {
         mColor = context.getProperPrimaryColor()
@@ -51,7 +53,44 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
             strokeWidth = 40f
             isAntiAlias = true
         }
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
         updateUndoVisibility()
+    }
+
+    fun setImageDimensions(imgWidth: Int, imgHeight: Int) {
+        if (imgWidth > 0 && imgHeight > 0 && (imageContentWidth != imgWidth || imageContentHeight != imgHeight)) {
+            imageContentWidth = imgWidth
+            imageContentHeight = imgHeight
+            invalidate()
+        }
+    }
+
+    fun getImageDisplayRect(): RectF {
+        val vw = width.toFloat().coerceAtLeast(1f)
+        val vh = height.toFloat().coerceAtLeast(1f)
+        if (imageContentWidth <= 0 || imageContentHeight <= 0) {
+            return RectF(0f, 0f, vw, vh)
+        }
+        val bw = imageContentWidth.toFloat()
+        val bh = imageContentHeight.toFloat()
+        val scale = minOf(vw / bw, vh / bh)
+        val dw = bw * scale
+        val dh = bh * scale
+        val left = (vw - dw) / 2f
+        val top = (vh - dh) / 2f
+        return RectF(left, top, left + dw, top + dh)
+    }
+
+    fun hasStrokes(): Boolean = mOperations.isNotEmpty()
+
+    fun getOperationsSnapshot(): List<CanvasOp> = ArrayList(mOperations)
+
+    fun restoreOperationsSnapshot(ops: List<CanvasOp>) {
+        mOperations = ArrayList(ops)
+        mUndoneOperations.clear()
+        mPath.reset()
+        updateUndoRedoVisibility()
+        invalidate()
     }
 
     public override fun onSaveInstanceState(): Parcelable {
@@ -74,60 +113,108 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.save()
+        if (mOperations.isEmpty() && mPath.isEmpty) return
 
-        if (backgroundBitmap != null) {
-            canvas.drawBitmap(backgroundBitmap!!, 0f, 0f, null)
+        val rect = getImageDisplayRect()
+        val rectW = rect.width().coerceAtLeast(1f)
+        val rectH = rect.height().coerceAtLeast(1f)
+
+        val saveCount = canvas.save()
+        canvas.clipRect(rect)
+
+        workMatrix.reset()
+        workMatrix.setScale(rectW, rectH)
+        workMatrix.postTranslate(rect.left, rect.top)
+
+        for (op in mOperations) {
+            if (op is CanvasOp.PathOp) {
+                changePaint(op.paintOptions, rectW)
+                workPath.reset()
+                op.path.transform(workMatrix, workPath)
+                canvas.drawPath(workPath, mPaint)
+            }
         }
 
-        if (mOperations.isNotEmpty()) {
-            val bitmapOps = mOperations.filterIsInstance<CanvasOp.BitmapOp>()
-            val bitmapOp = bitmapOps.lastOrNull()
-            if (bitmapOp != null) {
-                canvas.drawBitmap(bitmapOp.bitmap, 0f, 0f, null)
-            }
+        if (!mPath.isEmpty) {
+            val currentNormWidth = (mPaintOptions.strokeWidth / rectW).coerceAtLeast(0.002f)
+            changePaint(mPaintOptions.copy(strokeWidth = currentNormWidth), rectW)
+            workPath.reset()
+            mPath.transform(workMatrix, workPath)
+            canvas.drawPath(workPath, mPaint)
+        }
 
-            // only perform path ops after last bitmap op as any previous path operations are already visible due to the bitmap op
-            val startIndex = if (bitmapOp != null) mOperations.indexOf(bitmapOp) else 0
-            val endIndex = mOperations.lastIndex
-            val pathOps = mOperations.slice(startIndex..endIndex).filterIsInstance<CanvasOp.PathOp>()
-            for (pathOp in pathOps) {
-                changePaint(pathOp.paintOptions)
-                canvas.drawPath(pathOp.path, mPaint)
+        canvas.restoreToCount(saveCount)
+    }
+
+    fun renderStrokesToCanvas(targetCanvas: Canvas, targetWidth: Int, targetHeight: Int) {
+        if (mOperations.isEmpty()) return
+        val hasEraser = mOperations.any { it is CanvasOp.PathOp && it.paintOptions.isEraser }
+        val layerSave = if (hasEraser) {
+            targetCanvas.saveLayer(0f, 0f, targetWidth.toFloat(), targetHeight.toFloat(), null)
+        } else {
+            targetCanvas.save()
+        }
+
+        val mat = Matrix()
+        mat.setScale(targetWidth.toFloat(), targetHeight.toFloat())
+        val mapped = Path()
+        val paint = Paint().apply {
+            style = Paint.Style.STROKE
+            strokeJoin = Paint.Join.ROUND
+            strokeCap = Paint.Cap.ROUND
+            isAntiAlias = true
+        }
+
+        for (op in mOperations) {
+            if (op is CanvasOp.PathOp) {
+                if (op.paintOptions.isEraser) {
+                    paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+                    paint.color = Color.TRANSPARENT
+                } else {
+                    paint.xfermode = null
+                    paint.color = op.paintOptions.color
+                }
+                paint.strokeWidth = (op.paintOptions.strokeWidth * targetWidth).coerceAtLeast(1f)
+                mapped.reset()
+                op.path.transform(mat, mapped)
+                targetCanvas.drawPath(mapped, paint)
             }
         }
 
-        /*for ((key, value) in mPaths) {
-            changePaint(value)
-            canvas.drawPath(key, mPaint)
-        }*/
-
-        changePaint(mPaintOptions)
-        canvas.drawPath(mPath, mPaint)
-        canvas.restore()
+        targetCanvas.restoreToCount(layerSave)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        val x = event.x
-        val y = event.y
+        if (!isDrawingEnabled) {
+            return false
+        }
+
+        val rect = getImageDisplayRect()
+        val rectW = rect.width().coerceAtLeast(1f)
+        val rectH = rect.height().coerceAtLeast(1f)
+        val nx = (event.x - rect.left) / rectW
+        val ny = (event.y - rect.top) / rectH
 
         when (event.action and MotionEvent.ACTION_MASK) {
             MotionEvent.ACTION_DOWN -> {
                 mWasMultitouch = false
-                mStartX = x
-                mStartY = y
-                actionDown(x, y)
+                mStartX = nx
+                mStartY = ny
+                actionDown(nx, ny)
                 mUndoneOperations.clear()
                 updateRedoVisibility(false)
             }
 
             MotionEvent.ACTION_MOVE -> {
                 if (event.pointerCount == 1 && !mWasMultitouch) {
-                    actionMove(x, y)
+                    actionMove(nx, ny)
                 }
             }
 
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> actionUp()
+            MotionEvent.ACTION_UP -> actionUp(rectW)
+            MotionEvent.ACTION_CANCEL -> {
+                mPath.reset()
+            }
             MotionEvent.ACTION_POINTER_DOWN -> mWasMultitouch = true
         }
 
@@ -135,45 +222,57 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
         return true
     }
 
-    private fun actionDown(x: Float, y: Float) {
+    private fun actionDown(nx: Float, ny: Float) {
         mPath.reset()
-        mPath.moveTo(x, y)
-        mCurX = x
-        mCurY = y
+        mPath.moveTo(nx, ny)
+        mCurX = nx
+        mCurY = ny
     }
 
-    private fun actionMove(x: Float, y: Float) {
-        mPath.quadTo(mCurX, mCurY, (x + mCurX) / 2, (y + mCurY) / 2)
-        mCurX = x
-        mCurY = y
+    private fun actionMove(nx: Float, ny: Float) {
+        mPath.quadTo(mCurX, mCurY, (nx + mCurX) / 2f, (ny + mCurY) / 2f)
+        mCurX = nx
+        mCurY = ny
     }
 
-    private fun actionUp() {
+    private fun actionUp(rectW: Float) {
         if (!mWasMultitouch) {
             mPath.lineTo(mCurX, mCurY)
 
-            // draw a dot on click
+            // draw a dot on tap
             if (mStartX == mCurX && mStartY == mCurY) {
-                mPath.lineTo(mCurX, mCurY + 2)
-                mPath.lineTo(mCurX + 1, mCurY + 2)
-                mPath.lineTo(mCurX + 1, mCurY)
+                val dot = 2f / rectW
+                mPath.lineTo(mCurX, mCurY + dot)
+                mPath.lineTo(mCurX + dot / 2f, mCurY + dot)
+                mPath.lineTo(mCurX + dot / 2f, mCurY)
             }
         }
 
-        addOperation(CanvasOp.PathOp(mPath, mPaintOptions))
+        onBeforeStrokeListener?.invoke()
+        val strokeWidthToUse = if (mPaintOptions.isEraser) {
+            maxOf(mPaintOptions.strokeWidth, MIN_ERASER_WIDTH)
+        } else {
+            mPaintOptions.strokeWidth
+        }
+        val normalizedWidth = (strokeWidthToUse / rectW).coerceAtLeast(0.002f)
+        val savedOpts = PaintOptions(mPaintOptions.color, normalizedWidth, mPaintOptions.isEraser)
+        addOperation(CanvasOp.PathOp(mPath, savedOpts))
 
         updateUndoVisibility()
-        //mPaths[mPath] = mPaintOptions
         mPath = MyPath()
         mPaintOptions = PaintOptions(mPaintOptions.color, mPaintOptions.strokeWidth, mPaintOptions.isEraser)
+        onStrokeCommittedListener?.invoke()
     }
 
-    private fun changePaint(paintOptions: PaintOptions) {
-        mPaint.color = if (paintOptions.isEraser) mBackgroundColor else paintOptions.color
-        mPaint.strokeWidth = paintOptions.strokeWidth
-        if (paintOptions.isEraser && mPaint.strokeWidth < MIN_ERASER_WIDTH) {
-            mPaint.strokeWidth = MIN_ERASER_WIDTH
+    private fun changePaint(paintOptions: PaintOptions, rectW: Float) {
+        if (paintOptions.isEraser) {
+            mPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            mPaint.color = Color.TRANSPARENT
+        } else {
+            mPaint.xfermode = null
+            mPaint.color = paintOptions.color
         }
+        mPaint.strokeWidth = (paintOptions.strokeWidth * rectW).coerceAtLeast(1f)
     }
 
     fun updateColor(newColor: Int) {
@@ -184,40 +283,7 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
         mPaintOptions.strokeWidth = resources.getDimension(R.dimen.full_brush_size) * (newBrushSize / 100f)
     }
 
-    fun updateBackgroundBitmap(bitmap: Bitmap) {
-        backgroundBitmap = bitmap
-        invalidate()
-    }
-
-    fun getBitmap(): Bitmap? {
-        if (width <= 0 || height <= 0) return null
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        canvas.drawColor(Color.WHITE)
-        draw(canvas)
-        return bitmap
-    }
-
-    fun undoOld() {
-        if (mPaths.isEmpty()) {
-            return
-        }
-
-        val lastKey = mPaths.keys.lastOrNull()
-        mPaths.remove(lastKey)
-        invalidate()
-    }
-
     fun undo() {
-        if (mOperations.isEmpty() && mLastOperations.isNotEmpty()) {
-            mOperations = mLastOperations.clone() as ArrayList<CanvasOp>
-            mBackgroundBitmap = mLastBackgroundBitmap
-            mLastOperations.clear()
-            updateUndoVisibility()
-            invalidate()
-            return
-        }
-
         if (mOperations.isNotEmpty()) {
             val lastOp = mOperations.removeAt(mOperations.lastIndex)
             mUndoneOperations.add(lastOp)
@@ -236,35 +302,17 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
     }
 
     fun toggleEraser(isEraserOn: Boolean) {
-        mIsEraserOn = isEraserOn
         mPaintOptions.isEraser = isEraserOn
         invalidate()
     }
 
     private fun addOperation(operation: CanvasOp) {
         mOperations.add(operation)
-
-        // maybe free up some memory
         while (mOperations.size > MAX_HISTORY_COUNT) {
             val item = mOperations.removeAt(0)
             if (item is CanvasOp.BitmapOp && !item.bitmap.isRecycled) {
                 item.bitmap.recycle()
             }
-        }
-
-        val ops = mOperations.filterIsInstance<CanvasOp.BitmapOp>()
-        if (ops.size > BITMAP_MAX_HISTORY_COUNT) {
-            val start = ops.lastIndex - BITMAP_MAX_HISTORY_COUNT
-            val bitmapOp = ops.slice(start..ops.lastIndex).first()
-
-            val startIndex = mOperations.indexOf(bitmapOp)
-            for (i in 0 until startIndex) {
-                val removed = mOperations[i]
-                if (removed is CanvasOp.BitmapOp && !removed.bitmap.isRecycled) {
-                    removed.bitmap.recycle()
-                }
-            }
-            mOperations = ArrayList(mOperations.slice(startIndex..mOperations.lastIndex))
         }
     }
 
@@ -274,7 +322,7 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
     }
 
     private fun updateUndoVisibility() {
-        mListener?.toggleUndoVisibility(mOperations.isNotEmpty() || mLastOperations.isNotEmpty())
+        mListener?.toggleUndoVisibility(mOperations.isNotEmpty())
     }
 
     private fun updateRedoVisibility(visible: Boolean = mUndoneOperations.isNotEmpty()) {
@@ -282,12 +330,10 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
     }
 
     fun clearCanvas() {
-        mLastOperations = mOperations.clone() as ArrayList<CanvasOp>
-        mLastBackgroundBitmap = mBackgroundBitmap
-        mBackgroundBitmap = null
         mPath.reset()
         mOperations.clear()
-        updateUndoVisibility()
+        mUndoneOperations.clear()
+        updateUndoRedoVisibility()
         invalidate()
     }
 
@@ -297,7 +343,6 @@ class EditorDrawCanvas(context: Context, attrs: AttributeSet) : View(context, at
 
     fun updateBackgroundColor(newColor: Int) {
         mBackgroundColor = newColor
-        setBackgroundColor(newColor)
-        mBackgroundBitmap = null
+        invalidate()
     }
 }
