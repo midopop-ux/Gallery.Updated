@@ -181,14 +181,7 @@ class MediaAdapter(
             checkHideBtnVisibility(this, selectedItems)
             checkFavoriteBtnVisibility(this, selectedItems)
 
-            for (i in 0 until size()) {
-                val item = getItem(i)
-                if (item.itemId != R.id.menu_customize_options) {
-                    if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(activity, "cab_media", item.itemId)) {
-                        item.isVisible = false
-                    }
-                }
-            }
+            com.goodwy.gallery.dialogs.MenuCustomizer.applyMenuCustomization(activity, "cab_media", this)
         }
     }
 

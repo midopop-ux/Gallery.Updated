@@ -2,16 +2,19 @@ package com.goodwy.gallery.dialogs
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.view.menu.MenuItemImpl
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -33,10 +36,183 @@ object MenuCustomizer {
     private fun getPrefKey(menuTag: String) = "menu_customizer_order_$menuTag"
     private fun getHiddenKey(menuTag: String) = "menu_customizer_hidden_$menuTag"
 
+    private fun getItemKey(activity: Activity, itemId: Int): String {
+        return try {
+            activity.resources.getResourceEntryName(itemId)
+        } catch (_: Exception) {
+            itemId.toString()
+        }
+    }
+
     fun isItemHidden(activity: Activity, menuTag: String, itemId: Int): Boolean {
         val prefs: SharedPreferences = activity.getSharedPrefs()
         val hiddenSet: Set<String> = prefs.getStringSet(getHiddenKey(menuTag), emptySet()) ?: emptySet()
-        return hiddenSet.contains(itemId.toString())
+        val entryName = getItemKey(activity, itemId)
+        return hiddenSet.contains(entryName) || hiddenSet.contains(itemId.toString())
+    }
+
+    private data class SavedSubItem(
+        val groupId: Int,
+        val itemId: Int,
+        val title: CharSequence?,
+        val icon: Drawable?,
+        val isVisible: Boolean,
+        val isEnabled: Boolean,
+        val isCheckable: Boolean,
+        val isChecked: Boolean,
+        val intent: Intent?
+    )
+
+    private data class SavedMenuItem(
+        val groupId: Int,
+        val itemId: Int,
+        val title: CharSequence?,
+        val titleCondensed: CharSequence?,
+        val icon: Drawable?,
+        val isVisible: Boolean,
+        val isEnabled: Boolean,
+        val isCheckable: Boolean,
+        val isChecked: Boolean,
+        val intent: Intent?,
+        val actionView: View?,
+        val showAsActionFlags: Int,
+        val subItems: List<SavedSubItem>
+    )
+
+    @SuppressLint("RestrictedApi")
+    private fun getShowAsActionFlags(item: MenuItem): Int {
+        if (item is MenuItemImpl) {
+            var flags = when {
+                item.requiresActionButton() -> MenuItem.SHOW_AS_ACTION_ALWAYS
+                item.requestsActionButton() -> MenuItem.SHOW_AS_ACTION_IF_ROOM
+                else -> MenuItem.SHOW_AS_ACTION_NEVER
+            }
+            if (item.showsTextAsAction()) {
+                flags = flags or MenuItem.SHOW_AS_ACTION_WITH_TEXT
+            }
+            return flags
+        }
+        return MenuItem.SHOW_AS_ACTION_IF_ROOM
+    }
+
+    @SuppressLint("RestrictedApi")
+    fun applyMenuCustomization(activity: Activity, menuTag: String, menu: Menu) {
+        val prefs: SharedPreferences = activity.getSharedPrefs()
+        val orderStr: String = prefs.getString(getPrefKey(menuTag), "") ?: ""
+
+        if (orderStr.isNotEmpty()) {
+            val savedKeys = orderStr.split(",").filter { it.isNotEmpty() }
+            val currentKeys = (0 until menu.size()).mapNotNull { idx ->
+                val it = menu.getItem(idx)
+                if (it.itemId != R.id.menu_customize_options) getItemKey(activity, it.itemId) else null
+            }
+
+            // Compute desired key sequence matching currently inflated menu items
+            val keyIndexMap = savedKeys.withIndex().associate { it.value to it.index }
+            val numericIndexMap = mutableMapOf<String, Int>()
+            for ((idx, key) in savedKeys.withIndex()) {
+                numericIndexMap[key] = idx
+            }
+
+            fun resolveRank(itemId: Int, origPos: Int): Int {
+                if (itemId == R.id.menu_customize_options) return Int.MAX_VALUE
+                val key = getItemKey(activity, itemId)
+                return keyIndexMap[key] ?: numericIndexMap[itemId.toString()] ?: (10000 + origPos)
+            }
+
+            val snapshot = ArrayList<SavedMenuItem>(menu.size())
+            var needsRebuild = false
+            var lastRank = -1
+
+            for (i in 0 until menu.size()) {
+                val item = menu.getItem(i)
+                val rank = resolveRank(item.itemId, i)
+                if (rank < lastRank) {
+                    needsRebuild = true
+                }
+                lastRank = rank
+
+                val subList = ArrayList<SavedSubItem>()
+                if (item.hasSubMenu()) {
+                    val sub = item.subMenu
+                    if (sub != null) {
+                        for (j in 0 until sub.size()) {
+                            val s = sub.getItem(j)
+                            subList.add(
+                                SavedSubItem(
+                                    groupId = s.groupId,
+                                    itemId = s.itemId,
+                                    title = s.title,
+                                    icon = s.icon,
+                                    isVisible = s.isVisible,
+                                    isEnabled = s.isEnabled,
+                                    isCheckable = s.isCheckable,
+                                    isChecked = s.isChecked,
+                                    intent = s.intent
+                                )
+                            )
+                        }
+                    }
+                }
+
+                snapshot.add(
+                    SavedMenuItem(
+                        groupId = item.groupId,
+                        itemId = item.itemId,
+                        title = item.title,
+                        titleCondensed = item.titleCondensed,
+                        icon = item.icon,
+                        isVisible = item.isVisible,
+                        isEnabled = item.isEnabled,
+                        isCheckable = item.isCheckable,
+                        isChecked = item.isChecked,
+                        intent = item.intent,
+                        actionView = item.actionView,
+                        showAsActionFlags = getShowAsActionFlags(item),
+                        subItems = subList
+                    )
+                )
+            }
+
+            if (needsRebuild && currentKeys.isNotEmpty()) {
+                val sorted = snapshot.withIndex().sortedBy { resolveRank(it.value.itemId, it.index) }
+                menu.clear()
+                for ((newOrder, entry) in sorted.withIndex()) {
+                    val item = entry.value
+                    val added: MenuItem = if (item.subItems.isNotEmpty()) {
+                        val sub = menu.addSubMenu(item.groupId, item.itemId, newOrder, item.title)
+                        for ((subOrder, s) in item.subItems.withIndex()) {
+                            val addedSub = sub.add(s.groupId, s.itemId, subOrder, s.title)
+                            addedSub.icon = s.icon
+                            addedSub.isVisible = s.isVisible
+                            addedSub.isEnabled = s.isEnabled
+                            addedSub.isCheckable = s.isCheckable
+                            addedSub.isChecked = s.isChecked
+                            if (s.intent != null) addedSub.intent = s.intent
+                        }
+                        sub.item
+                    } else {
+                        menu.add(item.groupId, item.itemId, newOrder, item.title)
+                    }
+                    added.titleCondensed = item.titleCondensed
+                    added.icon = item.icon
+                    added.isEnabled = item.isEnabled
+                    added.isCheckable = item.isCheckable
+                    added.isChecked = item.isChecked
+                    if (item.intent != null) added.intent = item.intent
+                    if (item.actionView != null) added.setActionView(item.actionView)
+                    added.setShowAsAction(item.showAsActionFlags)
+                    added.isVisible = item.isVisible
+                }
+            }
+        }
+
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId != R.id.menu_customize_options && isItemHidden(activity, menuTag, item.itemId)) {
+                item.isVisible = false
+            }
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -48,18 +224,36 @@ object MenuCustomizer {
     ) {
         val prefs: SharedPreferences = activity.getSharedPrefs()
         val orderStr: String = prefs.getString(getPrefKey(menuTag), "") ?: ""
-        val hiddenSet: MutableSet<String> = HashSet(prefs.getStringSet(getHiddenKey(menuTag), emptySet()) ?: emptySet())
+        val rawHiddenSet: Set<String> = prefs.getStringSet(getHiddenKey(menuTag), emptySet()) ?: emptySet()
 
-        val map: Map<Int, CustomMenuItem> = originalItems.associateBy { it.id }
+        // Normalize hidden set to stable resource entry keys
+        val hiddenSet: MutableSet<String> = HashSet()
+        for (item in originalItems) {
+            val key = getItemKey(activity, item.id)
+            if (rawHiddenSet.contains(key) || rawHiddenSet.contains(item.id.toString())) {
+                hiddenSet.add(key)
+            }
+        }
+
+        val byKey = originalItems.associateBy { getItemKey(activity, it.id) }
+        val byNumericId = originalItems.associateBy { it.id.toString() }
         val currentItems: MutableList<CustomMenuItem> = mutableListOf()
+        val addedKeys = HashSet<String>()
 
         if (orderStr.isNotEmpty()) {
-            val savedIds = orderStr.split(",").mapNotNull { it.toIntOrNull() }
-            for (id in savedIds) {
-                map[id]?.let { currentItems.add(it) }
+            val savedTokens = orderStr.split(",").filter { it.isNotEmpty() }
+            for (token in savedTokens) {
+                val resolved = byKey[token] ?: byNumericId[token]
+                if (resolved != null) {
+                    val resolvedKey = getItemKey(activity, resolved.id)
+                    if (addedKeys.add(resolvedKey)) {
+                        currentItems.add(resolved)
+                    }
+                }
             }
             for (item in originalItems) {
-                if (!currentItems.contains(item)) {
+                val key = getItemKey(activity, item.id)
+                if (addedKeys.add(key)) {
                     currentItems.add(item)
                 }
             }
@@ -101,7 +295,7 @@ object MenuCustomizer {
 
         val builder = activity.getAlertDialogBuilder()
             .setPositiveButton(com.goodwy.commons.R.string.ok) { _, _ ->
-                val orderToSave = currentItems.joinToString(",") { it.id.toString() }
+                val orderToSave = currentItems.joinToString(",") { getItemKey(activity, it.id) }
                 prefs.edit()
                     .putString(getPrefKey(menuTag), orderToSave)
                     .putStringSet(getHiddenKey(menuTag), hiddenSet)
@@ -146,26 +340,28 @@ object MenuCustomizer {
             val item = items[position]
             holder.text.text = item.title
 
-            if (item.icon != null) {
+            val drawableCopy = item.icon?.constantState?.newDrawable()?.mutate() ?: item.icon
+            if (drawableCopy != null) {
                 holder.icon.visibility = View.VISIBLE
-                holder.icon.setImageDrawable(item.icon)
+                holder.icon.setImageDrawable(drawableCopy)
             } else {
                 holder.icon.visibility = View.GONE
             }
 
-            val isHidden = hiddenSet.contains(item.id.toString())
+            val itemKey = getItemKey(activity, item.id)
+            val isHidden = hiddenSet.contains(itemKey)
             updateVisibilityState(holder, isHidden)
 
             holder.hideButton.setOnClickListener {
                 val currentPos = holder.bindingAdapterPosition
                 if (currentPos != RecyclerView.NO_POSITION) {
                     val currentItem = items[currentPos]
-                    val idStr = currentItem.id.toString()
-                    val nowHidden = if (hiddenSet.contains(idStr)) {
-                        hiddenSet.remove(idStr)
+                    val key = getItemKey(activity, currentItem.id)
+                    val nowHidden = if (hiddenSet.contains(key)) {
+                        hiddenSet.remove(key)
                         false
                     } else {
-                        hiddenSet.add(idStr)
+                        hiddenSet.add(key)
                         true
                     }
                     updateVisibilityState(holder, nowHidden)

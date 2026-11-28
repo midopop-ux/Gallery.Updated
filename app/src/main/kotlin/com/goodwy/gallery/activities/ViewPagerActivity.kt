@@ -234,14 +234,7 @@ class ViewPagerActivity : BaseViewerActivity(), ViewPager.OnPageChangeListener, 
                     }
                 )
 
-                for (i in 0 until size()) {
-                    val item = getItem(i)
-                    if (item.itemId != R.id.menu_customize_options) {
-                        if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(this@ViewPagerActivity, "viewpager", item.itemId)) {
-                            item.isVisible = false
-                        }
-                    }
-                }
+                com.goodwy.gallery.dialogs.MenuCustomizer.applyMenuCustomization(this@ViewPagerActivity, "viewpager", this)
             }
 
             if (visibleBottomActions != 0) {

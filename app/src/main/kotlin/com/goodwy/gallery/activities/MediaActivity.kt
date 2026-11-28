@@ -384,14 +384,7 @@ class MediaActivity : SimpleActivity(), MediaOperationsListener {
             findItem(R.id.column_count).isVisible = viewType == VIEW_TYPE_GRID
             findItem(R.id.toggle_filename).isVisible = viewType == VIEW_TYPE_GRID
 
-            for (i in 0 until size()) {
-                val item = getItem(i)
-                if (item.itemId != R.id.menu_customize_options) {
-                    if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(this@MediaActivity, "media", item.itemId)) {
-                        item.isVisible = false
-                    }
-                }
-            }
+            com.goodwy.gallery.dialogs.MenuCustomizer.applyMenuCustomization(this@MediaActivity, "media", this)
         }
     }
 

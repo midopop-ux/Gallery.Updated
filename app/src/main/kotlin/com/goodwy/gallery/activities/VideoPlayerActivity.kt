@@ -210,15 +210,7 @@ open class VideoPlayerActivity : BaseViewerActivity(), SeekBar.OnSeekBarChangeLi
     }
 
     private fun applyMenuCustomization() {
-        val menu = binding.videoToolbar.menu
-        for (i in 0 until menu.size()) {
-            val item = menu.getItem(i)
-            if (item.itemId != R.id.menu_customize_options) {
-                if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(this, "video_player", item.itemId)) {
-                    item.isVisible = false
-                }
-            }
-        }
+        com.goodwy.gallery.dialogs.MenuCustomizer.applyMenuCustomization(this, "video_player", binding.videoToolbar.menu)
     }
 
     private fun customizeMenu() {

@@ -448,14 +448,7 @@ class MainActivity : SimpleActivity(), DirectoryOperationsListener {
             findItem(R.id.temporarily_show_excluded).isVisible = !config.temporarilyShowExcluded
             findItem(R.id.stop_showing_excluded).isVisible = config.temporarilyShowExcluded
 
-            for (i in 0 until size()) {
-                val item = getItem(i)
-                if (item.itemId != R.id.menu_customize_options) {
-                    if (com.goodwy.gallery.dialogs.MenuCustomizer.isItemHidden(this@MainActivity, "main", item.itemId)) {
-                        item.isVisible = false
-                    }
-                }
-            }
+            com.goodwy.gallery.dialogs.MenuCustomizer.applyMenuCustomization(this@MainActivity, "main", this)
         }
     }
 
